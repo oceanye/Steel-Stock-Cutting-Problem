@@ -14,7 +14,7 @@ import argparse
 
 #Folderpath = filedialog.askdirectory()
 #ssss = r"Z:\数字化课题\结构数字化课题\02 工作文件\2021 11 22 套料优化py脚本\2021 12 29 套料优化更新\Tekla_NCX_database.db"
-
+# Test
 ssss = r"Tekla_NCX_database.db"
 
 

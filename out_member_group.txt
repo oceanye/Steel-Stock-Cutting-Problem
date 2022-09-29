@@ -1,0 +1,9 @@
+********* 3mm tolerance is considered in each member ******
+------------
+Section: HN500*200*10*16:
+Usage info+Length_arrangement:[[0.533, 5607.0, [6393]]]
+ID_Group:(2721650)
+------------
+Section: HN600*200*11*17:
+Usage info+Length_arrangement:[[0.965, 419.0, [5193, 6388]], [0.982, 214.0, [5888, 5898]], [0.532, 5612.0, [6388]]]
+ID_Group:(2713128,2721490),(2721874,2721714),(2721481)

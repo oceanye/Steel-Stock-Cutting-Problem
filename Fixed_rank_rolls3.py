@@ -4,7 +4,8 @@ import copy
 import re
 
 global idx_status # idx_status = 0 数组顺序ok，=1 数组顺序需调整
-global slice_bar_info # 按顺序记录杆件长度与切断点
+global length_part_A
+
 def sum_list(list1, loc_of_sum_list1):
     #输入一个数列，并指定数位，将该数位之前的数据求和
     total = 0
@@ -61,13 +62,12 @@ def slice_last(list1,roll_length):
 
 
 def evaluate_list(list1, roll_length,min_len):
+    global length_part_A
     list_temp =[]
     sub_list = [] #存储切分方案
     idx_status = 0
     list_sum = len_sum(list1)
     slice_loc = find_slice_loc(list_sum, roll_length)
-
-
 
     print('---------------------------')
     print('长度信息：',list1)
@@ -77,6 +77,14 @@ def evaluate_list(list1, roll_length,min_len):
 
     for i in range(len(slice_loc)):
         slice_i = slice_loc[i]
+
+        if list_sum[slice_i-1]-roll_length*(i+1) < 1 :
+            print('刚刚好')
+            idx_status = 0
+            loc = slice_i
+            break
+
+
         if list1[slice_i-2] < min_len*2:
             print(list1[slice_i-2],'分段处过短，需调整')
             idx_status = 1
@@ -100,6 +108,7 @@ def evaluate_list(list1, roll_length,min_len):
             sp_j = slice_loc[i]
             list_temp=(list1[:sp_j-1])
             list_temp[-1] = str(list_temp[-1]) + "A"
+
         else:    #切第二根~切最后一刀，输出至倒数第二根
             sp_i = slice_loc[i - 1]
             sp_j = slice_loc[i]
@@ -107,11 +116,10 @@ def evaluate_list(list1, roll_length,min_len):
             list_temp[0] = str(list_temp[0]) + "B"
             list_temp[-1]= str(list_temp[-1])+ "A"
 
+        length_part_A.append(list_sum[slice_i-1] - roll_length * (i+1))
 
-        slice_bar_info.append(str(list_temp[-1])+str(list1[slice_i - 2] - (list_sum[slice_i - 1] - roll_length * (i + 1)))+'B'+str(list_sum[slice_i - 1] - roll_length * (i + 1)))
-        #print(slice_bar_info)
-
-        print('第',i+1,'个',roll_length,'切分段：',list1[slice_i-2],'/前段(A)：', list1[slice_i-2]-(list_sum[slice_i - 1] - roll_length * (i + 1)),'/后段(B)：', list_sum[slice_i - 1] - roll_length * (i + 1))
+# 此处顺序调整 2022 10 31
+        print('第',i+1,'个',roll_length,'切分段：',list1[slice_i-2],'/前段AAA：',list1[slice_i-2]-(list_sum[slice_i - 1] - roll_length * (i + 1)) ,'/后段BBB：', list_sum[slice_i-1] - roll_length * (i+1))
         print('  该分段长度布置:',list_temp)
 
         sub_list.append(list_temp)
@@ -189,6 +197,20 @@ def find_ID_list(sub_list,dict1):
             if (str(temp_oriLen)[-1] == 'A'):  # True
                 sub_ID_list[i+1].insert(0,str(temp_oriID)+'B')
     return sub_ID_list
+
+def gen_part_A_ID(ID_list):
+    ID_part=[]
+    for i in range(len(ID_list)):
+            for j in range(len(ID_list[i])):
+                if isinstance(ID_list[i][j],str):
+                    temp = (ID_list[i][j])
+                    ID_part = re.sub("[\D]","",temp)
+                    ID_suffix = re.sub("[0-9]","",temp)
+                    if ID_suffix == 'A':
+                        ID_part.append(ID_part)
+    return(ID_part)
+
+
 #n = 10
 
 #list1 = gen_list(n)
@@ -199,8 +221,8 @@ def find_ID_list(sub_list,dict1):
 #list1 = [700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,11000,10200,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150,500,600,700,800,850,900,1000,1100,1200,750,760,810,3500,2000,6000,7000,8000,780,650,780,150]
 
 #这个是正常测试长度，供调试
-list1 = [8680, 1080, 4190, 9390, 4030, 2630, 11430, 8460, 8000, 4030, 2630, 11430, 8460, 8000, 2670]
-
+#list1 = [8680, 1080, 4190, 9390, 4030, 2630, 11430, 8460, 8000, 4030, 2630, 11430, 8460, 8000, 2670]
+list1 = [6000,6000,6000,6000]
 #ID 表示各段编号，目前是生成顺序的数列，后续导入Tekla模型编号
 ID_list = range(1,len(list1)+1)
 
@@ -213,9 +235,10 @@ list1_last = []
 
 t= 0
 idx_status = 1
-slice_bar_info=[]
+length_part_A =[]
+ID_part_A=[]
+
 while idx_status == 1:
-    slice_bar_info=[]
     print('迭代次数:',t)
     if sum_list(list1,len(list1))%12000 < 650: #切去最后一段
         [list1,list1_last]=slice_last(list1,12000)
@@ -238,11 +261,15 @@ while idx_status == 1:
         if len(list1_last)>0:  # 切去最后一段
             sub_list.append(list1_last)
             print('另计最后单根构件，构件长度',list1_last)
+
+        ID_list=find_ID_list(sub_list, dict1)
+        gen_part_A_ID(ID_list)
         #--------------------------------------------------
         print('分段结果：',sub_list)#输出分段结果
-        print('分段ID值：',find_ID_list(sub_list, dict1))
+        print('分段ID值：',ID_list)
         print('原始字典：',originDict1)
-        print('LTotal-LA-LB(L***A***B):',slice_bar_info)
+        print(length_part_A)
+        print(ID_part_A)
         #--------------------------------------------------
         break
 

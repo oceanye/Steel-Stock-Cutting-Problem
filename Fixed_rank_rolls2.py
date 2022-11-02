@@ -4,7 +4,7 @@ import copy
 import re
 
 global idx_status # idx_status = 0 数组顺序ok，=1 数组顺序需调整
-global slice_bar_info # 按顺序记录杆件长度与切断点
+
 def sum_list(list1, loc_of_sum_list1):
     #输入一个数列，并指定数位，将该数位之前的数据求和
     total = 0
@@ -67,8 +67,6 @@ def evaluate_list(list1, roll_length,min_len):
     list_sum = len_sum(list1)
     slice_loc = find_slice_loc(list_sum, roll_length)
 
-
-
     print('---------------------------')
     print('长度信息：',list1)
     print('前序求和：',list_sum)
@@ -108,10 +106,8 @@ def evaluate_list(list1, roll_length,min_len):
             list_temp[-1]= str(list_temp[-1])+ "A"
 
 
-        slice_bar_info.append(str(list_temp[-1])+str(list1[slice_i - 2] - (list_sum[slice_i - 1] - roll_length * (i + 1)))+'B'+str(list_sum[slice_i - 1] - roll_length * (i + 1)))
-        #print(slice_bar_info)
 
-        print('第',i+1,'个',roll_length,'切分段：',list1[slice_i-2],'/前段(A)：', list1[slice_i-2]-(list_sum[slice_i - 1] - roll_length * (i + 1)),'/后段(B)：', list_sum[slice_i - 1] - roll_length * (i + 1))
+        print('第',i+1,'个',roll_length,'切分段：',list1[slice_i-2],'/前段：', list_sum[slice_i-1] - roll_length * (i+1),'/后段：', list1[slice_i-2]-(list_sum[slice_i - 1] - roll_length * (i + 1)))
         print('  该分段长度布置:',list_temp)
 
         sub_list.append(list_temp)
@@ -189,6 +185,24 @@ def find_ID_list(sub_list,dict1):
             if (str(temp_oriLen)[-1] == 'A'):  # True
                 sub_ID_list[i+1].insert(0,str(temp_oriID)+'B')
     return sub_ID_list
+
+
+
+
+def gen_AB_part(sub_list,ID_list,i_length):
+    part_AB = {}
+    for i in range(len(ID_list)):
+            for j in range(len(ID_list[i])):
+                if isinstance(ID_list[i][j],str):
+                    temp = (ID_list[i][j])
+                    ID_part = re.sub("[\D]","",temp)
+                    ID_suffix = re.sub("[0-9]","",temp)
+                    part_AB.update['ID'] = ID_part
+                    if ID_suffix == 'A':
+                        part_AB.update[ID_suffix] = 123
+    return(part_AB)
+
+
 #n = 10
 
 #list1 = gen_list(n)
@@ -213,9 +227,8 @@ list1_last = []
 
 t= 0
 idx_status = 1
-slice_bar_info=[]
+
 while idx_status == 1:
-    slice_bar_info=[]
     print('迭代次数:',t)
     if sum_list(list1,len(list1))%12000 < 650: #切去最后一段
         [list1,list1_last]=slice_last(list1,12000)
@@ -238,11 +251,15 @@ while idx_status == 1:
         if len(list1_last)>0:  # 切去最后一段
             sub_list.append(list1_last)
             print('另计最后单根构件，构件长度',list1_last)
+
+        ID_list = find_ID_list(sub_list, dict1) #生成分段ID
+
+        gen_AB_part(sub_list, ID_list,12000)
         #--------------------------------------------------
         print('分段结果：',sub_list)#输出分段结果
-        print('分段ID值：',find_ID_list(sub_list, dict1))
+        print('分段ID值：',ID_list)
         print('原始字典：',originDict1)
-        print('LTotal-LA-LB(L***A***B):',slice_bar_info)
+
         #--------------------------------------------------
         break
 

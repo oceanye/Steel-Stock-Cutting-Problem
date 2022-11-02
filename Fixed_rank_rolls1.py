@@ -4,7 +4,7 @@ import copy
 import re
 
 global idx_status # idx_status = 0 数组顺序ok，=1 数组顺序需调整
-global slice_bar_info # 按顺序记录杆件长度与切断点
+
 def sum_list(list1, loc_of_sum_list1):
     #输入一个数列，并指定数位，将该数位之前的数据求和
     total = 0
@@ -60,6 +60,7 @@ def slice_last(list1,roll_length):
     return(list1,list1_last)
 
 
+
 def evaluate_list(list1, roll_length,min_len):
     list_temp =[]
     sub_list = [] #存储切分方案
@@ -67,7 +68,10 @@ def evaluate_list(list1, roll_length,min_len):
     list_sum = len_sum(list1)
     slice_loc = find_slice_loc(list_sum, roll_length)
 
+    global length_pre,length_post
 
+    length_pre = 0
+    length_post=0
 
     print('---------------------------')
     print('长度信息：',list1)
@@ -77,6 +81,7 @@ def evaluate_list(list1, roll_length,min_len):
 
     for i in range(len(slice_loc)):
         slice_i = slice_loc[i]
+
         if list1[slice_i-2] < min_len*2:
             print(list1[slice_i-2],'分段处过短，需调整')
             idx_status = 1
@@ -95,23 +100,35 @@ def evaluate_list(list1, roll_length,min_len):
             loc = slice_i-1
             break
 
+
         # A-前一组切断后的后半段； B-切断后的前半段
+
+        if i==0: #切第一根
+            length_pre_i = list_sum[slice_i - 1] - roll_length * (i + 1)# A段长度
+            length_post_i = list1[slice_i-2]-(list_sum[slice_i - 1] - roll_length * (i + 1)) # B段长度
+        else:
+            slice_j = slice_loc[i-1] # 前一根
+            length_pre_j = list_sum[slice_j - 1] - roll_length * (i + 1-1)# A段长度
+            length_pre_i = list_sum[slice_i - 1] - roll_length * (i + 1)# A段长度
+            length_post_i = list1[slice_i-2]-(list_sum[slice_i - 1] - roll_length * (i + 1))
+
+
         if i==0: #切第一根
             sp_j = slice_loc[i]
             list_temp=(list1[:sp_j-1])
-            list_temp[-1] = str(list_temp[-1]) + "A"
+            list_temp[-1] = str(list_temp[-1]) + "(A"+str(length_pre_i)+")"
         else:    #切第二根~切最后一刀，输出至倒数第二根
             sp_i = slice_loc[i - 1]
             sp_j = slice_loc[i]
             list_temp=list1[sp_i-2:sp_j-1]
-            list_temp[0] = str(list_temp[0]) + "B"
-            list_temp[-1]= str(list_temp[-1])+ "A"
+            list_temp[0] = str(list_temp[0]) + "(B"+str(length_post_i)+")"
+            list_temp[-1]= str(list_temp[-1])+ "(A"+str(length_pre_j)+")"
 
 
-        slice_bar_info.append(str(list_temp[-1])+str(list1[slice_i - 2] - (list_sum[slice_i - 1] - roll_length * (i + 1)))+'B'+str(list_sum[slice_i - 1] - roll_length * (i + 1)))
-        #print(slice_bar_info)
 
-        print('第',i+1,'个',roll_length,'切分段：',list1[slice_i-2],'/前段(A)：', list1[slice_i-2]-(list_sum[slice_i - 1] - roll_length * (i + 1)),'/后段(B)：', list_sum[slice_i - 1] - roll_length * (i + 1))
+
+
+        print('第',i+1,'个',roll_length,'切分段：',list1[slice_i-2],'/前段：', length_pre_i,'+后段：', length_post_i )
         print('  该分段长度布置:',list_temp)
 
         sub_list.append(list_temp)
@@ -119,10 +136,12 @@ def evaluate_list(list1, roll_length,min_len):
         if i == (len(slice_loc)-1): # 最后一段信息
             sp_i = slice_loc[-1]
             list_temp=list1[sp_i-2:]
-            list_temp[0] = str(list_temp[0]) + "B"
+            list_temp[0] = str(list_temp[0]) + "(B"+str(length_post_i)+")"
             print('第',i+2,'个',roll_length,'切分段(末段)')
             print('  该分段长度布置:',list_temp)
             sub_list.append(list_temp)
+
+
 
     if idx_status == 0:
 
@@ -168,17 +187,19 @@ def find_ID_list(sub_list,dict1):
         for j in range(len(sub_list[i])):
             temp_length = sub_list[i][j]
             #print(str(temp_length).isdigit())
-            if (str(temp_length)[-1]=='B'): #True
+            #if (str(temp_length)[-1]=='B'): #True
+            if 'B' in str(temp_length):  # True
                 del sub_list_A[i][j]
 
     for i in range(len(sub_list_A)):
         for j in range(len(sub_list_A[i])):
             ID_suffix = []
             temp_len=sub_list_A[i][j]
-            temp_ID = int(re.sub("\D","",str(temp_len)))
+            temp_ID = int(re.sub("\((.+?)\)","",str(temp_len)))#int(re.sub("\D","",str(temp_len)))
             if isinstance(temp_len,str):
-                ID_suffix = list(temp_len)[-1]
-            sub_list_A[i][j] = str(findKV(temp_ID,dict1)).strip("[").strip("]")+str(ID_suffix).strip("[").strip("]")
+                pattern = re.compile("[a-zA-Z]")
+                ID_suffix = pattern.findall(str(list(temp_len)))#list(temp_len)[-1]
+            sub_list_A[i][j] = str(findKV(temp_ID,dict1)).strip("[").strip("]")+str(ID_suffix).strip("[").strip("]").strip("'")
             #print(sub_list_A[i][j])
 
     sub_ID_list = copy.deepcopy(sub_list_A)
@@ -186,7 +207,8 @@ def find_ID_list(sub_list,dict1):
         for j in range(len(sub_list_A[i])):
             temp_oriLen = sub_list_A[i][j]
             temp_oriID = int(re.sub("\D", "", str(temp_oriLen)))
-            if (str(temp_oriLen)[-1] == 'A'):  # True
+#            if (str(temp_oriLen)[-1] == 'A'):  # True
+            if 'A' in str(temp_oriLen):  # True
                 sub_ID_list[i+1].insert(0,str(temp_oriID)+'B')
     return sub_ID_list
 #n = 10
@@ -213,9 +235,8 @@ list1_last = []
 
 t= 0
 idx_status = 1
-slice_bar_info=[]
+
 while idx_status == 1:
-    slice_bar_info=[]
     print('迭代次数:',t)
     if sum_list(list1,len(list1))%12000 < 650: #切去最后一段
         [list1,list1_last]=slice_last(list1,12000)
@@ -242,7 +263,7 @@ while idx_status == 1:
         print('分段结果：',sub_list)#输出分段结果
         print('分段ID值：',find_ID_list(sub_list, dict1))
         print('原始字典：',originDict1)
-        print('LTotal-LA-LB(L***A***B):',slice_bar_info)
+
         #--------------------------------------------------
         break
 

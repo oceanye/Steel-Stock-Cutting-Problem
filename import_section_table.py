@@ -3,7 +3,7 @@ import sqlite3
 import test8_ortools_stock_cutter_1d
 import copy
 
-import argparse
+#import argparse
 #import tkinter as tk
 #from tkinter import filedialog
 

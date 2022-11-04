@@ -2,6 +2,7 @@ import numpy as np
 import sqlite3
 import test8_ortools_stock_cutter_1d
 import copy
+import Fixed_rank_rolls_v2
 
 #import argparse
 #import tkinter as tk
@@ -172,11 +173,17 @@ def width_tol(w,tol):
     # print(w)
     return(w)
 
+def check_org_length(var):
+    if str(var).__contains__('-'):
+        val_len = int(var.split('-')[1])
+    else:
+        val_len=(int(var))
+    return(val_len)
 def substi_len(val_len,len1,mat1,wei1):
 
-    # print("val_len",val_len)
+    print("val_len",val_len)
     # print("len1",len1)
-    val_len=(int(val_len))
+    val_len=check_org_length(val_len)
     len1=list(map(int, list(len1)))
     ii = len1.index(val_len)
 
@@ -206,7 +213,10 @@ print(key_id)
 print(key_numb)
 #-----------------------------------------------------------#
 
+#---------------------套料方式-------------------------------#
+par_option = "rank_roll" #(opt_method,rank_roll)
 
+#------------------------------------------------------------#
 
 for s in section_list:
     section_data = Select_Section(s, data)
@@ -253,7 +263,13 @@ for s in section_list:
 
     #test2_MIP.CSP_MIP(w1, b1)
     #test3_gurobipy.CSP_gurobipy(w1,b1,ID1)
-    [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=test8_ortools_stock_cutter_1d.CSP_ortools(w1,b1,ID3)
+
+    if par_option =="opt_method":
+        [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=test8_ortools_stock_cutter_1d.CSP_ortools(w1,b1,ID3)
+    elif par_option =="rank_roll":
+        [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=Fixed_rank_rolls_v2.rank_rolls(w1,ID3)
+
+    print('')
     # print(rst1)
     # print(rst2)
     # print(type(w[1]))
@@ -293,7 +309,7 @@ for s in section_list:
 
         temp2 = ''
         for i in range(len(temp1[2])):
-            temp2 = temp2 + str(temp1[2][i]-3) + ","
+            temp2 = temp2 + str(check_org_length(temp1[2][i])-3) + ","
         lenlist.append(temp2[0:-1])
 
 
@@ -303,6 +319,9 @@ for s in section_list:
         temp4 = ''
         temp5 = ''
         for i in range(len(demand_sub_rolls[j][0])):
+            aaaa=demand_sub_rolls[j][0][i]
+            print(i)
+            print(aaaa)
             temp3=temp3+demand_sub_rolls[j][0][i]+","
             temp4=temp4+consumed_sub_rolls_material[j][0][i]+","
             temp5=temp5+consumed_sub_rolls_weight[j][0][i]+","
@@ -321,6 +340,9 @@ tbl1 = []
 for tt in range(9):
     tbl1.append([])
 for i in range(0, len(section)):
+
+    print(pair_id_numb(idlist[i]))
+
     tbl1[0].append("'"+section[i]+"'")
     tbl1[1].append(i+1)
     tbl1[2].append(ratio[i])

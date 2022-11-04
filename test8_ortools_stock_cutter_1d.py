@@ -470,6 +470,7 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
 
 def CSP_ortools(w,b,ID):
   child_rolls = []
+
   for i in range(0, len(w)):
     child_rolls.append([b[i], w[i]])
 

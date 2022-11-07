@@ -138,9 +138,13 @@ def pair_id_numb(k_id):
         k = str(k_id)
     else:
         for ki in k_id.split(","):
-            print(key_id.index(ki))
-            k.append(key_numb[key_id.index(ki)])
-    print(type(k))
+
+            ki_val,sufx = check_org_ID(ki)
+            print(key_id.index(ki_val))
+            k.append(key_numb[key_id.index(ki_val)]+sufx)
+    print('----20221107-----')
+    print(k)
+
     return(k)
 
 def Select_Section(section,data):
@@ -179,6 +183,19 @@ def check_org_length(var):
     else:
         val_len=(int(var))
     return(val_len)
+def check_org_ID(var):
+    print(var)
+    if str(var).__contains__('A'):
+        var_ID = var.strip('A')
+        var_sufx='A'
+    elif str(var).__contains__('B'):
+        var_ID = var.strip('B')
+        var_sufx='B'
+    else:
+        var_ID = var
+        var_sufx=""
+
+    return(var_ID,var_sufx)
 def substi_len(val_len,len1,mat1,wei1):
 
     print("val_len",val_len)
@@ -215,6 +232,11 @@ print(key_numb)
 
 #---------------------套料方式-------------------------------#
 par_option = "rank_roll" #(opt_method,rank_roll)
+
+cnR = sqlite3.connect(ssss)
+sql_Del_From = 'DELETE FROM rank_roll_table'
+cnR.execute(sql_Del_From)
+cnR.commit()
 
 #------------------------------------------------------------#
 
@@ -265,6 +287,7 @@ for s in section_list:
     #test3_gurobipy.CSP_gurobipy(w1,b1,ID1)
 
     if par_option =="opt_method":
+
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=test8_ortools_stock_cutter_1d.CSP_ortools(w1,b1,ID3)
     elif par_option =="rank_roll":
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=Fixed_rank_rolls_v2.rank_rolls(w1,ID3)
@@ -319,10 +342,8 @@ for s in section_list:
         temp4 = ''
         temp5 = ''
         for i in range(len(demand_sub_rolls[j][0])):
-            aaaa=demand_sub_rolls[j][0][i]
-            print(i)
-            print(aaaa)
-            temp3=temp3+demand_sub_rolls[j][0][i]+","
+
+            temp3=temp3+(demand_sub_rolls[j][0][i])+","#check_org_ID
             temp4=temp4+consumed_sub_rolls_material[j][0][i]+","
             temp5=temp5+consumed_sub_rolls_weight[j][0][i]+","
         idlist.append(temp3[0:-1])
@@ -341,7 +362,7 @@ for tt in range(9):
     tbl1.append([])
 for i in range(0, len(section)):
 
-    print(pair_id_numb(idlist[i]))
+
 
     tbl1[0].append("'"+section[i]+"'")
     tbl1[1].append(i+1)

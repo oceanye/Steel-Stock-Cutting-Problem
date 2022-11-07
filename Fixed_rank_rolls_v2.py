@@ -365,7 +365,7 @@ def rank_rolls(list_temp, ID_list_temp):
 
     ######################################################
     #conn = sqlite3.connect('test1.db')
-    cnR = sqlite3.connect("Tekla_NCX_database.db")
+    cnR = sqlite3.connect(r"Tekla_NCX_database.db")
     c = cnR.cursor()
     print("数据库打开成功")
 

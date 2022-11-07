@@ -24,7 +24,7 @@ print(args.length)
 
 
 
-if args.length>0:
+if args.length>10:
     parent_length = args.length
 else:
     parent_length = 12000

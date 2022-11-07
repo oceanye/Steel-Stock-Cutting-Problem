@@ -3,6 +3,8 @@ import sqlite3
 import test8_ortools_stock_cutter_1d
 import copy
 import Fixed_rank_rolls_v2
+import argparse
+
 
 #import argparse
 #import tkinter as tk
@@ -12,6 +14,21 @@ import Fixed_rank_rolls_v2
 #root.withdraw()
 
 
+
+parser = argparse.ArgumentParser(description='套料设置')
+parser.add_argument("-l","--roll_length", type=int,help='整料长度')
+parser.add_argument("-r","--roll_type", type=int,help='套料方式:opt_method,rank_roll')
+args = parser.parse_args()
+
+if args.roll_length >1 :
+    parent_length = args.roll_length
+else:
+    parent_length =12000
+
+if True:
+    para_option = args.roll_type
+else:
+    para_option='opt_method'
 
 #Folderpath = filedialog.askdirectory()
 #ssss = r"Z:\数字化课题\结构数字化课题\02 工作文件\2021 11 22 套料优化py脚本\2021 12 29 套料优化更新\Tekla_NCX_database.db"
@@ -231,7 +248,7 @@ print(key_numb)
 #-----------------------------------------------------------#
 
 #---------------------套料方式-------------------------------#
-par_option = "rank_roll" #(opt_method,rank_roll)
+para_option = "rank_roll" #(opt_method,rank_roll)
 
 cnR = sqlite3.connect(ssss)
 sql_Del_From = 'DELETE FROM rank_roll_table'
@@ -286,10 +303,9 @@ for s in section_list:
     #test2_MIP.CSP_MIP(w1, b1)
     #test3_gurobipy.CSP_gurobipy(w1,b1,ID1)
 
-    if par_option =="opt_method":
-
+    if para_option =="opt_method":
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=test8_ortools_stock_cutter_1d.CSP_ortools(w1,b1,ID3)
-    elif par_option =="rank_roll":
+    elif para_option =="rank_roll":
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=Fixed_rank_rolls_v2.rank_rolls(w1,ID3)
 
     print('')

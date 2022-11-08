@@ -14,6 +14,7 @@ import argparse
 
 
 
+
 parser = argparse.ArgumentParser(description='套料设置')
 parser.add_argument("-l","--roll_length", type=int,help='整料长度')
 parser.add_argument("-r","--roll_type", type=int,help='套料方式:opt_method,rank_roll')

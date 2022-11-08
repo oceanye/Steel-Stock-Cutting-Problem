@@ -2,33 +2,38 @@ import numpy as np
 import sqlite3
 import test8_ortools_stock_cutter_1d
 import copy
-import Fixed_rank_rolls_v2
+
 import argparse
+import Fixed_rank_rolls_v2
+
+global parent_length
 
 
-#import argparse
-#import tkinter as tk
-#from tkinter import filedialog
-
-
-
+import argparse
+import shared_variable
 
 
 
 parser = argparse.ArgumentParser(description='套料设置')
-parser.add_argument("-l","--roll_length", type=int,help='整料长度')
-parser.add_argument("-r","--roll_type", type=int,help='套料方式:opt_method,rank_roll')
+parser.add_argument("-l","--roll_length",default=10000, type=int,help='整料长度(mm)')
+parser.add_argument("-t","--roll_type",default='opt_method', type=str,help='套料方式=opt_method,rank_roll')
+parser.add_argument("-r","--split_length",default=600, type=int,help='最小切分长度(mm)')
 args = parser.parse_args()
 
-if args.roll_length >1 :
-    parent_length = args.roll_length
-else:
-    parent_length =12000
 
-if True:
-    para_option = args.roll_type
-else:
-    para_option='opt_method'
+shared_variable.parent_length = args.roll_length
+para_option=args.roll_type
+shared_variable.split_length = args.split_length
+
+
+
+
+
+
+
+
+
+#print(parent_length)
 
 #Folderpath = filedialog.askdirectory()
 #ssss = r"Z:\数字化课题\结构数字化课题\02 工作文件\2021 11 22 套料优化py脚本\2021 12 29 套料优化更新\Tekla_NCX_database.db"
@@ -248,7 +253,7 @@ print(key_numb)
 #-----------------------------------------------------------#
 
 #---------------------套料方式-------------------------------#
-para_option = "rank_roll" #(opt_method,rank_roll)
+#para_option = "rank_roll" #(opt_method,rank_roll)
 
 cnR = sqlite3.connect(ssss)
 sql_Del_From = 'DELETE FROM rank_roll_table'

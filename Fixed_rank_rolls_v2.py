@@ -4,6 +4,8 @@ import copy
 import re
 import sqlite3
 
+import shared_variable
+
 global idx_status  # idx_status = 0 数组顺序ok，=1 数组顺序需调整
 global slice_bar_info  # 按顺序记录杆件长度与切断点
 
@@ -294,8 +296,8 @@ def rank_rolls(list_temp, ID_list_temp):
 
         #if sum_list(list1, len(list1)) % 12000 < 650:  # 切去最后一段???20221107
         #   [list1, list1_last] = slice_last(list1, 12000)
-        if sum_list(list1, len(list1))> 12000:
-            [idx_status, loc, sub_list] = evaluate_list(list1, 12000, 650)
+        if sum_list(list1, len(list1))> shared_variable.parent_length :
+            [idx_status, loc, sub_list] = evaluate_list(list1, shared_variable.parent_length , shared_variable.split_length)
         else:
             [idx_status,loc,sub_list]=[0,len(list1),[list1]]
         # print('状态：',idx_status)

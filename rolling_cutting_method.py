@@ -1,18 +1,15 @@
 import copy
-#from import_section_table import args
-#import argparse
 
-args = -1
+
+
 
 child = [5000, 5100, 5200, 5300, 5400, 5500]
 ID = [12345, 32312, 312312, 323222, 23332, 32132]
 
 
 
-if args>0:
-    parent_length = args.length
-else:
-    parent_length = 12000
+
+parent_length = 12000
 
 
 print("-****************************",parent_length)

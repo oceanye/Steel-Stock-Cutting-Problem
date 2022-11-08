@@ -10,26 +10,29 @@ from random import randint
 import json
 import numpy as np
 import copy
+import shared_variable
 
-import argparse
-
-
-global args
-parser = argparse.ArgumentParser()
-parser.add_argument("--length", "-l", type=int, help="the parent length", default=1)
-args = parser.parse_args()
+#from import_section_table import parent_length
 
 
-print(args.length)
+# global args
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--length", "-l", type=int, help="the parent length", default=1)
+# args = parser.parse_args()
+#
+#
+# print(args.length)
 
 
 
-if args.length>10:
-    parent_length = args.length
-else:
-    parent_length = 12000
+# if args.length>10:
+#     parent_length = args.length
+# else:
+#parent_length = 12000
 
-
+#---------2022 11 08-------------#
+print('-----2022 11 08------------------')
+print(shared_variable.parent_length )
 
 def newSolver(name,integer=False):
   return pywraplp.Solver(name,\
@@ -475,7 +478,7 @@ def CSP_ortools(w,b,ID):
     child_rolls.append([b[i], w[i]])
 
 #  child_rolls2 = [[5,500],[5,7580],[1,3260],[1,7740],[1,7980],[1,2780],[1,3210]]
-  parent_rolls = [[100, parent_length]] # 10 doesn't matter, itls not used at the moment
+  parent_rolls = [[100, shared_variable.parent_length ]] # 10 doesn't matter, itls not used at the moment
 
   consumed_big_rolls,consumed_sub_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=False)
 

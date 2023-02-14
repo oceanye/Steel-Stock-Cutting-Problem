@@ -6,13 +6,23 @@ import sqlite3
 
 import shared_variable
 
+import logging
+
 global idx_status  # idx_status = 0 数组顺序ok，=1 数组顺序需调整
 global slice_bar_info  # 按顺序记录杆件长度与切断点
 
 
+logging.basicConfig(level=logging.WARNING,
+                    filename='./log_rank_roll.txt',
+                    filemode='w',
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+
+
+
+
 def sum_list(list1, loc_of_sum_list1):
     # 输入一个数列，并指定数位，将该数位之前的数据求和
-    total = 0
+    total = loc_of_sum_list1*3 # 考虑循环套料两两之间，增加3mm间隙
     for i in range(loc_of_sum_list1):
         total = list1[i] + total
     return total
@@ -76,9 +86,13 @@ def evaluate_list(list1, roll_length, min_len):
     global slice_bar_info
 
     print('---------------------------')
+
     print('长度信息：', list1)
     print('前序求和：', list_sum)
     print('切分位置：', slice_loc)
+
+
+    logging.debug('切分位置：', slice_loc)
     # print(slice_loc)
 
     for i in range(len(slice_loc)):
@@ -302,15 +316,36 @@ def rank_rolls(list_temp, ID_list_temp):
             [idx_status,loc,sub_list]=[0,len(list1),[list1]]
         # print('状态：',idx_status)
         if idx_status == 1:
-            if loc > 5: # 针有较多短构件，设定阈值，前5根排好后，即不作调整，避免过多迭代
-                list1_a = list1[:loc - 5]
-                list1_b = list1[loc - 5:]
+            l_r = round(len(list1)/5)
+
+            if loc > 6: # 针有较多短构件，设定阈值，前5根排好后，即不作调整，避免过多迭代
+                list1_a = list1[:loc - 6]
+                list1_b = list1[loc - 6:]
                 random.shuffle(list1_b)
                 list1 = list1_a + list1_b
             else:
                 random.shuffle(list1)
-            # print(list1)
+            print(list1)
             t = t + 1
+            # if loc < 5:
+            #     random.shuffle(list1)
+            # elif (loc<=10 and loc >5):
+            #     list1_a = list1[:loc - 5]
+            #     list1_b = list1[loc - 5:]
+            #     random.shuffle(list1_b)
+            #     list1 = list1_a + list1_b
+            # elif (loc<=20 and loc>10):
+            #     list1_a = list1[:loc - 10]
+            #     list1_b = list1[loc - 10:]
+            #     random.shuffle(list1_b)
+            #     list1 = list1_a + list1_b
+            # else:
+            #     list1_a = list1[:loc - 20]
+            #     list1_b = list1[loc - 20:]
+            #     random.shuffle(list1_b)
+            #     list1 = list1_a + list1_b
+            # print(list1)
+            # t = t + 1
         else:
 
             #if len(list1_last) > 0:  # 切去最后一段
@@ -343,7 +378,7 @@ def rank_rolls(list_temp, ID_list_temp):
                     sql_ID = i[l]
                     sql_Group_No = dataClean.index(j) + 1
                     if str((i[l][-1])).__contains__('A'):
-                        sql_Length_A = j[l]
+                        sql_Length_A = j[l]-shared_variable.roll_gap
                         # dataAna.append([sql_ID,sql_Group_No,0,sql_Length_A,0,anaInfo])
                         sql_Length_NC = originDict1[str(i[l]).strip('A')]  # 原杆件长度
                         dataAna.append(
@@ -382,6 +417,7 @@ def rank_rolls(list_temp, ID_list_temp):
     sql = "INSERT INTO rank_roll_table (ID,Group_No,Length_NC,Length_A,Length_B,INFO) VALUES (?,?,?,?,?,?)"
 
     for no in range(len(dataAna)):
+
         c.execute(sql, (dataAna[no][0], dataAna[no][1], dataAna[no][2], dataAna[no][3], dataAna[no][4], dataAna[no][5]))
         cnR.commit()
         # print ("数据插入成功")

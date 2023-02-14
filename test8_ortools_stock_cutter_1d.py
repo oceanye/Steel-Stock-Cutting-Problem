@@ -243,16 +243,16 @@ def solve_large_model(demands, parent_width=100):
   num_orders = len(demands)
   iter = 0
   patterns = get_initial_patterns(demands)
-  # print('method#solve_large_model, patterns', patterns)
+  print('method#solve_large_model, patterns', patterns)
 
   # list quantities of orders
   quantities = [demands[i][0] for i in range(num_orders)]
   print('quantities', quantities)
 
-  while iter < 20:
+  while iter < round((sum(quantities))*0.5):
     status, y, l = solve_master(patterns, quantities, parent_width=parent_width)
     iter += 1
-
+    print ('large_model -', iter ,' total bars:',sum(y))
     # list widths of orders
     widths = [demands[i][1] for i in range(num_orders)]
     new_pattern, objectiveValue = get_new_pattern(l, widths, parent_width=parent_width)
@@ -266,6 +266,8 @@ def solve_large_model(demands, parent_width=100):
 
   status, y, l = solve_master(patterns, quantities, parent_width=parent_width, integer=True)  
 
+
+  #  return status,  numRollsUsed,  rolls(numRollsUsed, SolVal(x), SolVal(unused_widths), demands),  SolVal(unused_widths),   solver.WallTime()
   return status, \
           patterns, \
           y, \
@@ -303,8 +305,9 @@ def solve_master(patterns, quantities, parent_width=100, integer=False):
   for i in range(num_patterns):
     # add constraint that this pattern (demand) must be met
     # there are m such constraints, for each pattern
-    constraints.append(solver.Add( sum(patterns[i][j]*y[j] for j in range(n)) >= quantities[i]) ) 
+    constraints.append(solver.Add( sum(patterns[i][j]*y[j] for j in range(n)) == quantities[i]) ) #2023.2.14 >= -> =
 
+  #solver.parameters.num_search_workers = 8;# 并行计算
   status = solver.Solve()
   y = [int(ceil(e.SolutionValue())) for e in y]
 
@@ -400,40 +403,51 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
     status, numRollsUsed, consumed_big_rolls, unused_roll_widths, wall_time = \
               solve_model(demands=child_rolls, parent_width=parent_width)
 
-    # convert the format of output of solve_model to be exactly same as solve_large_model
-    print('consumed_big_rolls before adjustment: ', consumed_big_rolls)
-    new_consumed_big_rolls = []
-    new_subrolls_group=[]
-    for big_roll in consumed_big_rolls:
-      if len(big_roll) < 2:
-        # sometimes the solve_model return a solution that contanis an extra [0.0] entry for big roll
-        consumed_big_rolls.remove(big_roll)
-        continue
-      unused_width = big_roll[0]
 
-      subrolls = []
-      for subitem in big_roll[1:]:
-        if isinstance(subitem, list):
-          # if it's a list, concatenate with the other lists, to make a single list for this big_roll
-          subrolls = subrolls + subitem
-        else:
-          # if it's an integer, add it to the list
-          subrolls.append(subitem)
-      usage_ratio = 1-unused_width/parent_width
-      new_consumed_big_rolls.append([round(usage_ratio,3),round(unused_width,1), subrolls]) # remove the tol
-      new_subrolls_group.append([subrolls])
-    print('consumed_big_rolls after adjustment: ', new_consumed_big_rolls)
-    ti = 0
-    for ii in new_consumed_big_rolls:
-      ti=ii[0]+ti
-    print('usage_avg:',ti/len(new_consumed_big_rolls))
-    #print('usage_avg',sum(new_consumed_big_rolls[:,0]/len(new_consumed_big_rolls)))
-    print('sub_roll_group',new_subrolls_group)
-    consumed_big_rolls = new_consumed_big_rolls,new_subrolls_group
   
   else:
     print('Running Large Model...');
+    #status, A, y, consumed_big_rolls = solve_large_model(demands=child_rolls, parent_width=parent_width)
     status, A, y, consumed_big_rolls = solve_large_model(demands=child_rolls, parent_width=parent_width)
+    numRollsUsed=sum(y)
+    unused_roll_widths=[]
+    for i in range(numRollsUsed):
+      unused_roll_widths.append(consumed_big_rolls[i][0])
+
+
+
+  # convert the format of output of solve_model to be exactly same as solve_large_model
+  print('consumed_big_rolls before adjustment: ', consumed_big_rolls)
+  new_consumed_big_rolls = []
+  new_subrolls_group = []
+  for big_roll in consumed_big_rolls:
+    if len(big_roll) < 2:
+      # sometimes the solve_model return a solution that contanis an extra [0.0] entry for big roll
+      consumed_big_rolls.remove(big_roll)
+      continue
+    unused_width = big_roll[0]
+
+    subrolls = []
+    for subitem in big_roll[1:]:
+      if isinstance(subitem, list):
+        # if it's a list, concatenate with the other lists, to make a single list for this big_roll
+        subrolls = subrolls + subitem
+      else:
+        # if it's an integer, add it to the list
+        subrolls.append(subitem)
+    usage_ratio = 1 - unused_width / parent_width
+    new_consumed_big_rolls.append([round(usage_ratio, 3), round(unused_width, 1), subrolls])  # remove the tol
+    new_subrolls_group.append([subrolls])
+  print('consumed_big_rolls after adjustment: ', new_consumed_big_rolls)
+  ti = 0
+  for ii in new_consumed_big_rolls:
+    ti = ii[0] + ti
+  print('usage_avg:', ti / len(new_consumed_big_rolls))
+  # print('usage_avg',sum(new_consumed_big_rolls[:,0]/len(new_consumed_big_rolls)))
+  print('sub_roll_group', new_subrolls_group)
+  consumed_big_rolls = new_consumed_big_rolls, new_subrolls_group
+
+
 
   numRollsUsed = len(consumed_big_rolls)
   # print('A:', A, '\n')
@@ -478,9 +492,9 @@ def CSP_ortools(w,b,ID):
     child_rolls.append([b[i], w[i]])
 
 #  child_rolls2 = [[5,500],[5,7580],[1,3260],[1,7740],[1,7980],[1,2780],[1,3210]]
-  parent_rolls = [[100, shared_variable.parent_length ]] # 10 doesn't matter, itls not used at the moment
+  parent_rolls = [[200, shared_variable.parent_length ]] # 10 doesn't matter, itls not used at the moment
 
-  consumed_big_rolls,consumed_sub_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=False)
+  consumed_big_rolls,consumed_sub_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=shared_variable.large_mode)
 
 
   demand_sub_rolls = copy.deepcopy(consumed_sub_rolls)
@@ -493,6 +507,7 @@ def CSP_ortools(w,b,ID):
       for ck in range(0,len(demand_sub_rolls[ci][cj])):
 
         temp_c = demand_sub_rolls[ci][cj][ck]
+        print(temp_c)
         temp_c_ID=ID[w.index(temp_c)][-1]
         demand_sub_rolls[ci][cj][ck]=temp_c_ID
 

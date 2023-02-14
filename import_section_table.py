@@ -12,19 +12,32 @@ global parent_length
 import argparse
 import shared_variable
 
+import logging
+
+import PySimpleGUI as sg
+import time
+
+logging.basicConfig(level=logging.WARNING,
+                    filename='./log_main.txt',
+                    filemode='w',
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+
 
 
 parser = argparse.ArgumentParser(description='套料设置')
-parser.add_argument("-l","--roll_length",default=10000, type=int,help='整料长度(mm)')
-parser.add_argument("-t","--roll_type",default='opt_method', type=str,help='套料方式=opt_method,rank_roll')
+parser.add_argument("-l","--roll_length",default=12000, type=int,help='整料长度(mm)')
+parser.add_argument("-t","--roll_type",default='rank_roll', type=str,help='套料方式=opt_method,rank_roll')
 parser.add_argument("-r","--split_length",default=600, type=int,help='最小切分长度(mm)')
+parser.add_argument("-g","--roll_gap",default=5, type=int,help="循环套料拼接焊缝尺寸(mm)")
+parser.add_argument("-m","--large_mode",default=False,type=bool,help='True-Large_mode;False-Small_mode')
 args = parser.parse_args()
 
 
 shared_variable.parent_length = args.roll_length
 para_option=args.roll_type
 shared_variable.split_length = args.split_length
-
+shared_variable.roll_gap = args.roll_gap
+shared_variable.large_mode = args.large_mode
 
 
 
@@ -276,12 +289,14 @@ for s in section_list:
     # print("b1:",b1)
 
 
-
-    w1=width_tol(w1,3) # 3mm is tol
+    if para_option=="opt_method": # 优化套料需要在输入端考虑3mm 杆件之间间隙，循环套料在套料过程中考虑
+        w1=width_tol(w1,3) # 3mm is tol
+    else:
+        w1=w1
 
     str1="------------\n"+"Section: "+str(s)+":\n"
     outfile.write(str1)
-
+    logging.info(str1)
 
     ID2= list(ID1)
     ID3=ID2
@@ -353,7 +368,10 @@ for s in section_list:
 
         temp2 = ''
         for i in range(len(temp1[2])):
-            temp2 = temp2 + str(check_org_length(temp1[2][i])-3) + ","
+            if para_option=="opt_method":
+                temp2 = temp2 + str(check_org_length(temp1[2][i])-3) + ","
+            else:
+                temp2= temp2 + str(check_org_length(temp1[2][i])) + ","
         lenlist.append(temp2[0:-1])
 
 
@@ -370,6 +388,10 @@ for s in section_list:
         idlist.append(temp3[0:-1])
         matlist.append(temp4[0:-1])
         weightlist.append(temp5[0:-1])
+
+    sg.one_line_progress_meter('This is my progress meter!', i + 1, len(section_list), '-key-')
+    time.sleep(1)
+
 outfile.close()
 
 

@@ -249,7 +249,7 @@ def solve_large_model(demands, parent_width=100):
   quantities = [demands[i][0] for i in range(num_orders)]
   print('quantities', quantities)
 
-  while iter < round((sum(quantities))*0.5):
+  while iter <max(30,round((sum(quantities))*0.5)) :
     status, y, l = solve_master(patterns, quantities, parent_width=parent_width)
     iter += 1
     print ('large_model -', iter ,' total bars:',sum(y))
@@ -329,10 +329,14 @@ def get_new_pattern(l, w, parent_width=100):
 
   # maximizes the sum of the values times the number of occurrence of that roll in a pattern
   Cost = sum( l[i] * new_pattern[i] for i in range(n))
-  solver.Maximize(Cost)
+  #solver.Maximize(Cost)
+
+  #2023.2.14 最小化余料
+  Cost2 = sum(12000-l[i]*new_pattern[i] for i in range(n))
+  solver.Minimize(Cost2)
 
   # ensuring that the pattern stays within the total width of the large roll 
-  solver.Add( sum( w[i] * new_pattern[i] for i in range(n)) <= parent_width ) 
+  solver.Add( sum( w[i] * new_pattern[i] for i in range(n)) <= parent_width )
 
   status = solver.Solve()
   return SolVal(new_pattern), ObjVal(solver)
@@ -494,7 +498,7 @@ def CSP_ortools(w,b,ID):
 #  child_rolls2 = [[5,500],[5,7580],[1,3260],[1,7740],[1,7980],[1,2780],[1,3210]]
   parent_rolls = [[200, shared_variable.parent_length ]] # 10 doesn't matter, itls not used at the moment
 
-  consumed_big_rolls,consumed_sub_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=shared_variable.large_mode)
+  consumed_big_rolls,consumed_sub_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=shared_variable.largesmall_mode)
 
 
   demand_sub_rolls = copy.deepcopy(consumed_sub_rolls)

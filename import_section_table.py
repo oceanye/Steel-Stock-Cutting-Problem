@@ -29,7 +29,7 @@ parser.add_argument("-l","--roll_length",default=12000, type=int,help='整料长
 parser.add_argument("-t","--roll_type",default='rank_roll', type=str,help='套料方式=opt_method,rank_roll')
 parser.add_argument("-r","--split_length",default=600, type=int,help='最小切分长度(mm)')
 parser.add_argument("-g","--roll_gap",default=5, type=int,help="循环套料拼接焊缝尺寸(mm)")
-parser.add_argument("-m","--large_mode",default=False,type=bool,help='True-Large_mode;False-Small_mode')
+parser.add_argument("-m","--largesmall_mode",default=0,type=int,help='1-Large_mode;0-Small_mode')
 args = parser.parse_args()
 
 
@@ -37,7 +37,7 @@ shared_variable.parent_length = args.roll_length
 para_option=args.roll_type
 shared_variable.split_length = args.split_length
 shared_variable.roll_gap = args.roll_gap
-shared_variable.large_mode = args.large_mode
+shared_variable.largesmall_mode = args.largesmall_mode
 
 
 

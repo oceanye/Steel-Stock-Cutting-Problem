@@ -11,6 +11,7 @@ import json
 import numpy as np
 import copy
 import shared_variable
+import sqlite3
 
 #from import_section_table import parent_length
 
@@ -32,9 +33,10 @@ import shared_variable
 
 #---------2022 11 08-------------#
 print('-----2022 11 08------------------')
-print(shared_variable.parent_length )
+#print(shared_variable.parent_length )
 
 def newSolver(name,integer=False):
+  #
   return pywraplp.Solver(name,\
                          pywraplp.Solver.SCIP_MIXED_INTEGER_PROGRAMMING \
                          if integer else \
@@ -102,8 +104,7 @@ def solve_model(demands, parent_width=100):
     # total width of small rolls cut from j-th big roll, 
     # must not exceed big rolls width
     solver.Add( \
-        sum((demands[i][1])*x[i][j] for i in range(num_orders)) \
-        <= ((parent_width)*y[j]) \
+        sum((demands[i][1])*x[i][j] for i in range(num_orders))  <= ((parent_width)*y[j])
       ) 
 
     # width of j-th big roll - total width of all orders cut from j-th roll
@@ -153,10 +154,12 @@ def solve_model(demands, parent_width=100):
 
   Cost = solver.Sum((j+1)*y[j] for j in range(k[1]))
   #Rolls = solver.Sum(y[j] for j in range(k[1]))
+  Cost2 = solver.Sum(unused_widths) #2023.2.15 余料最小优先
 
+  solver.SetNumThreads(4)
 
   #model.exportrofile('debugfile.txt')
-  solver.Minimize(Cost)
+  solver.Minimize(Cost2)
 
   status = solver.Solve()
   numRollsUsed = SolVal(nb)
@@ -204,6 +207,7 @@ def bounds(demands, parent_width=100):
           k[1],T = k[1]+1, 0 # use next roll (k[1] += 1)
   k[0] = int(round(TT/parent_width+0.5))
 
+
   print('k', k)
   print('b', b)
 
@@ -249,22 +253,32 @@ def solve_large_model(demands, parent_width=100):
   quantities = [demands[i][0] for i in range(num_orders)]
   print('quantities', quantities)
 
-  while iter <max(30,round((sum(quantities))*0.5)) :
+  while iter <20 :#max(30,round((sum(quantities))*0.5)) :
     status, y, l = solve_master(patterns, quantities, parent_width=parent_width)
-    iter += 1
-    print ('large_model -', iter ,' total bars:',sum(y))
+
+    #print ('large_model -', iter ,' total bars:',sum(y))
     # list widths of orders
     widths = [demands[i][1] for i in range(num_orders)]
     new_pattern, objectiveValue = get_new_pattern(l, widths, parent_width=parent_width)
 
-    # print('method#solve_large_model, new_pattern', new_pattern)
-    # print('method#solve_large_model, objectiveValue', objectiveValue)
+    #pattern_reversed=[[r[col] for r in patterns] for col in range(len(patterns[0]))]
+
+    #if new_pattern in pattern_reversed:
+    #  break
+
+    iter += 1
+    print('method#solve_large_model, new_pattern', new_pattern)
+    print('method#solve_large_model, objectiveValue', objectiveValue)
 
     for i in range(num_orders):
       # add i-th cut of new pattern to i-thp pattern
       patterns[i].append(new_pattern[i])
 
-  status, y, l = solve_master(patterns, quantities, parent_width=parent_width, integer=True)  
+  #pattern_reversed = [[r[col] for r in patterns] for col in range(len(patterns[0]))]
+  #del pattern_reversed[0:9]
+  #patterns = [[r[col] for r in pattern_reversed] for col in range(len(pattern_reversed[0]))]
+
+  status, y, l = solve_master_fin(patterns, quantities, parent_width=parent_width, integer=True)
 
 
   #  return status,  numRollsUsed,  rolls(numRollsUsed, SolVal(x), SolVal(unused_widths), demands),  SolVal(unused_widths),   solver.WallTime()
@@ -298,7 +312,47 @@ def solve_master(patterns, quantities, parent_width=100, integer=False):
   # y is not boolean, it's an integer now (as compared to y in approach used by solve_model)
   y = [ solver.IntVar(0, 1000, '') for j in range(n) ] # right bound?
   # minimize total big rolls (y) used
-  Cost = sum(y[j] for j in range(n)) 
+  Cost = sum(y[j] for j in range(n))
+  solver.Minimize(Cost)
+
+  # for every pattern
+  for i in range(num_patterns):
+    # add constraint that this pattern (demand) must be met
+    # there are m such constraints, for each pattern
+     constraints.append(solver.Add( sum(patterns[i][j]*y[j] for j in range(n)) >= quantities[i]) ) #2023.2.14 >= -> =
+
+  #solver.SetNumThreads(4)
+  status = solver.Solve()
+  y = [int(ceil(e.SolutionValue())) for e in y]
+
+  l =  [0 if integer else constraints[i].DualValue() for i in range(num_patterns)]
+  # sl =  [0 if integer else constraints[i].name() for i in range(num_patterns)]
+  # print('sl: ', sl)
+
+  # l =  [0 if integer else u[i].Ub() for i in range(m)]
+  toreturn = status, y, l
+  # l_to_print = [round(dd, 2) for dd in toreturn[2]]
+  # print('l: ', len(l_to_print), '->', l_to_print)
+  # print('l: ', toreturn[2])
+  return toreturn
+
+def solve_master_fin(patterns, quantities, parent_width=100, integer=False):
+  title = 'Cutting stock master problem_fin'
+  num_patterns = len(patterns)
+  n = len(patterns[0])
+  # print('**num_patterns x n: ', num_patterns, 'x', n)
+  # print('**patterns recived:')
+  # for p in patterns:
+  #   print(p)
+
+  constraints = []
+
+  solver = newSolver(title, integer)
+
+  # y is not boolean, it's an integer now (as compared to y in approach used by solve_model)
+  y = [ solver.IntVar(0, 1000, '') for j in range(n) ] # right bound?
+  # minimize total big rolls (y) used
+  Cost = sum(y[j] for j in range(n))
   solver.Minimize(Cost)
 
   # for every pattern
@@ -307,7 +361,7 @@ def solve_master(patterns, quantities, parent_width=100, integer=False):
     # there are m such constraints, for each pattern
     constraints.append(solver.Add( sum(patterns[i][j]*y[j] for j in range(n)) == quantities[i]) ) #2023.2.14 >= -> =
 
-  #solver.parameters.num_search_workers = 8;# 并行计算
+  #solver.SetNumThreads(4)
   status = solver.Solve()
   y = [int(ceil(e.SolutionValue())) for e in y]
 
@@ -331,9 +385,13 @@ def get_new_pattern(l, w, parent_width=100):
   Cost = sum( l[i] * new_pattern[i] for i in range(n))
   #solver.Maximize(Cost)
 
+
+
+
   #2023.2.14 最小化余料
-  Cost2 = sum(12000-l[i]*new_pattern[i] for i in range(n))
-  solver.Minimize(Cost2)
+  #Cost2 = sum(parent_width-l[i]*new_pattern[i] for i in range(n))
+  #solver.Minimize(Cost)
+  solver.Maximize(Cost)
 
   # ensuring that the pattern stays within the total width of the large roll 
   solver.Add( sum( w[i] * new_pattern[i] for i in range(n)) <= parent_width )
@@ -413,7 +471,7 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
     print('Running Large Model...');
     #status, A, y, consumed_big_rolls = solve_large_model(demands=child_rolls, parent_width=parent_width)
     status, A, y, consumed_big_rolls = solve_large_model(demands=child_rolls, parent_width=parent_width)
-    numRollsUsed=sum(y)
+    numRollsUsed=len(consumed_big_rolls)
     unused_roll_widths=[]
     for i in range(numRollsUsed):
       unused_roll_widths.append(consumed_big_rolls[i][0])
@@ -452,8 +510,8 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
   consumed_big_rolls = new_consumed_big_rolls, new_subrolls_group
 
 
+  numRollsUsed = len(consumed_big_rolls[0])
 
-  numRollsUsed = len(consumed_big_rolls)
   # print('A:', A, '\n')
   # print('y:', y, '\n')
 
@@ -481,13 +539,22 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
   print('Solutions found :', output['numSolutions'])
   print('Unique solutions: ', output['numUniqueSolutions'])
 
+
+  ###################test1#########################
+
+
+
+
   if output_json:
     return json.dumps(output)        
   else:
     return consumed_big_rolls
 
 
+def find_len2ID(len,w,b):
+  ind = w.find(len)
 
+  return
 
 def CSP_ortools(w,b,ID):
   child_rolls = []
@@ -496,32 +563,82 @@ def CSP_ortools(w,b,ID):
     child_rolls.append([b[i], w[i]])
 
 #  child_rolls2 = [[5,500],[5,7580],[1,3260],[1,7740],[1,7980],[1,2780],[1,3210]]
-  parent_rolls = [[200, shared_variable.parent_length ]] # 10 doesn't matter, itls not used at the moment
+  parent_rolls = [[max(200,sum(b)), shared_variable.parent_length ]] # 10 doesn't matter, itls not used at the moment
 
-  consumed_big_rolls,consumed_sub_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=shared_variable.largesmall_mode)
+  if shared_variable.largesmall_mode == 1:
+    mode_select = False;
+  elif shared_variable.largesmall_mode == 2:
+    mode_select=True;
+  else:
+    if sum(b)>50:
+      mode_select = True
+    else:
+      mode_select = False
+
+  consumed_big_rolls,consumed_sub_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model = mode_select)
 
 
   demand_sub_rolls = copy.deepcopy(consumed_sub_rolls)
   # print(id(demand_sub_rolls))
   # print(id(consumed_sub_rolls))
   # ID = ID.tolist()
-  print("ID_type",type(ID))
+  #print("ID_type",type(ID))
+  dataAna =[]
+
   for ci in range(0,len(demand_sub_rolls)):
     for cj in range(0,len(demand_sub_rolls[ci])):
       for ck in range(0,len(demand_sub_rolls[ci][cj])):
 
         temp_c = demand_sub_rolls[ci][cj][ck]
-        print(temp_c)
+        #print(temp_c)
         temp_c_ID=ID[w.index(temp_c)][-1]
         demand_sub_rolls[ci][cj][ck]=temp_c_ID
-
+        temp_c_len=consumed_sub_rolls[ci][cj][ck]
         # print("temp_C",temp_c)
         # print("ID_index",w.index(temp_c))
         # print("ID_List",ID[w.index(temp_c)])
         # print("ID",ID[w.index(temp_c)][-1])
+        ana_info ='None'
+        sql_Group_No=ci+1
+        dataAna.append([(temp_c_ID), (sql_Group_No), (temp_c_len), 0, 0, ana_info])
 
         ID[w.index(temp_c)].remove(temp_c_ID)
 
+  # 单根构件信息，写入rank_roll_table
+  no=0
+
+  # for i_group in consumed_sub_rolls:
+  #   for j_length in i_group[0]:
+  #     sql_ID = ID[w.index(j_length)][0]
+  #     ID[w.index(j_length)].remove(0)
+  #     sql_Group_No=no
+  #     sql_length_NC=j_length
+  #     anaInfo=[]
+  #
+  #   no=no+1
+
+  # conn = sqlite3.connect('test1.db')
+  cnR = sqlite3.connect(r"Tekla_NCX_database.db")
+  c = cnR.cursor()
+  print("数据库打开成功")
+
+  # sql_Del_From = 'DELETE FROM Analysis_table'
+
+  # c.execute(sql_Del_From)
+  # conn.commit()
+  # print ("Analysis_table 已清空")
+
+  exampleValues = ['13A', 2, 10000, 0, 0, 'None']
+
+  sql = "INSERT INTO rank_roll_table (ID,Group_No,Length_NC,Length_A,Length_B,INFO) VALUES (?,?,?,?,?,?)"
+
+  for no in range(len(dataAna)):
+    c.execute(sql, (dataAna[no][0], dataAna[no][1], dataAna[no][2], dataAna[no][3], dataAna[no][4], dataAna[no][5]))
+    cnR.commit()
+    print ("数据插入成功")
+
+  #cnR.close()
+  print("数据库已更新")
 
   print("consumed_sub_rolls:\n",consumed_sub_rolls)
   print("demand_sub_rolls_ID:\n",demand_sub_rolls)

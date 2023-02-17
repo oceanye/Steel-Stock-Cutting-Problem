@@ -175,10 +175,10 @@ def pair_id_numb(k_id):
         for ki in k_id.split(","):
 
             ki_val,sufx = check_org_ID(ki)
-            print(key_id.index(ki_val))
+            #print(key_id.index(ki_val))
             k.append(key_numb[key_id.index(ki_val)]+sufx)
-    print('----20221107-----')
-    print(k)
+    #print('----20221107-----')
+    #print(k)
 
     return(k)
 
@@ -219,7 +219,7 @@ def check_org_length(var):
         val_len=(int(var))
     return(val_len)
 def check_org_ID(var):
-    print(var)
+    #print(var)
     if str(var).__contains__('A'):
         var_ID = var.strip('A')
         var_sufx='A'
@@ -233,7 +233,7 @@ def check_org_ID(var):
     return(var_ID,var_sufx)
 def substi_len(val_len,len1,mat1,wei1):
 
-    print("val_len",val_len)
+    #print("val_len",val_len)
     # print("len1",len1)
     val_len=check_org_length(val_len)
     len1=list(map(int, list(len1)))
@@ -261,8 +261,8 @@ global key_numb
 key_id = One_dim_list(id)
 key_numb= One_dim_list(numb)
 
-print(key_id)
-print(key_numb)
+#print(key_id)
+#print(key_numb)
 #-----------------------------------------------------------#
 
 #---------------------套料方式-------------------------------#
@@ -389,7 +389,7 @@ for s in section_list:
         matlist.append(temp4[0:-1])
         weightlist.append(temp5[0:-1])
 
-    sg.one_line_progress_meter('This is my progress meter!', i + 1, len(section_list), '-key-')
+    sg.one_line_progress_meter('截面类型', i + 1, len(section_list), '')
     time.sleep(1)
 
 outfile.close()
@@ -419,10 +419,10 @@ for i in range(0, len(section)):
 #    print(pair_id_numb(idlist[i]))
 tbl1_T = list(zip(*tbl1))
 
-print("--------")
-print(tbl1[8])
-print(tbl1[8][0])
-print("--------")
+#print("--------")
+#print(tbl1[8])
+#print(tbl1[8][0])
+#print("--------")
 
 cnR = sqlite3.connect(ssss)
 cnR.execute("drop table if exists Output_table;")

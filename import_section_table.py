@@ -296,7 +296,7 @@ for s in section_list:
 
     str1="------------\n"+"Section: "+str(s)+":\n"
     outfile.write(str1)
-    logging.info(str1)
+    #logging.info(str1)
 
     ID2= list(ID1)
     ID3=ID2

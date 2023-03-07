@@ -256,7 +256,7 @@ def rank_output(dataAna):
         else:
             l = i[2]
 
-        consumed_big_rolls[i[1] - 1][0] = 0
+        consumed_big_rolls[i[1] - 1][0] = 1
         consumed_big_rolls[i[1] - 1][1] = 0
         consumed_big_rolls[i[1] - 1][2].append(l)
 

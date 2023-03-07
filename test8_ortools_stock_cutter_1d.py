@@ -13,6 +13,8 @@ import copy
 import shared_variable
 import sqlite3
 
+
+
 #from import_section_table import parent_length
 
 
@@ -38,6 +40,8 @@ print('-----2022 11 08------------------')
 def newSolver(name,integer=False):
   #
   #integer=True
+
+
   return pywraplp.Solver(name,\
                          pywraplp.Solver.SCIP_MIXED_INTEGER_PROGRAMMING \
                          if integer else \
@@ -153,14 +157,22 @@ def solve_model(demands, parent_width=100):
   will spend more CPU cycles trying to find more efficient patterns that over-satisfy demand. This is especially good if the demand widths recur regularly and storing cut rolls in inventory to satisfy future demand is possible. Note that the running time will grow quickly with such an objective function
   '''
 
-  Cost = solver.Sum((j+1)*y[j] for j in range(k[1]))
+  Cost = solver.Sum(y[j] for j in range(k[1]))
   #Rolls = solver.Sum(y[j] for j in range(k[1]))
   Cost2 = solver.Sum(unused_widths) #2023.2.15 余料最小优先
 
   #solver.SetNumThreads(4)
+  #solver.SetSolverSpecificParametersAsString('limits/tree/depth = 10')
 
   #model.exportrofile('debugfile.txt')
-  solver.Minimize(Cost2)
+  solver.Minimize(Cost)
+
+
+    # Set SCIP solver parameters
+  #solver.SetSolverSpecificParametersAsString('limits/tree/depth = 10')
+  #solver.SetSolverSpecificParametersAsString(scip_params)
+
+
 
   status = solver.Solve()
   numRollsUsed = SolVal(nb)
@@ -253,28 +265,34 @@ def solve_large_model(demands, parent_width=100):
   # list quantities of orders
 
 
-  while iter <max(30,num_orders*3) :
+  while iter <300:
     quantities = [demands[i][0] for i in range(num_orders)]
     print('quantities', quantities)
     status, y, l = solve_master(patterns, quantities, parent_width)
 
-    #print ('large_model -', iter ,' total bars:',sum(y))
+    print ('large_model -', iter ,' total bars:',sum(y))
     # list widths of orders
     widths = [demands[i][1] for i in range(num_orders)]
     new_pattern, objectiveValue = get_new_pattern(l, widths, parent_width)
 
-    #pattern_reversed=[[r[col] for r in patterns] for col in range(len(patterns[0]))]
+    #将patterns转置，判定如果new pattern 已存在，则不记录，break
+    pattern_reversed=[[r[col] for r in patterns] for col in range(len(patterns[0]))]
 
-    #if new_pattern in pattern_reversed:
-    #  break
+    if new_pattern in pattern_reversed:
+      break
+    ######
 
-    iter += 1
-    print('method#solve_large_model, new_pattern', new_pattern)
+
+    iter =len(patterns[0])
+    print('method#solve_large_model, new_pattern',iter, new_pattern)
     print('method#solve_large_model, objectiveValue', objectiveValue)
+
 
     for i in range(num_orders):
       # add i-th cut of new pattern to i-thp pattern
       patterns[i].append(new_pattern[i])
+
+  patterns = [sublist[len(demands)*0:] for sublist in patterns]
 
   status, y, l = solve_master(patterns, quantities, parent_width, True)
 
@@ -319,6 +337,12 @@ def solve_master(patterns, quantities, parent_width=100, integer=False):
     # there are m such constraints, for each pattern
      constraints.append(solver.Add( sum(patterns[i][j]*y[j] for j in range(n)) == quantities[i]) ) #2023.2.14 >= -> =
 
+  #if integer==True:
+    # Set SCIP solver parameters
+  #  scip_params = f"limits/nodes = 100000\nlimits/depth = 10\nlp/solvefreq = 10"
+  #  solver.SetSolverSpecificParametersAsString(scip_params)
+
+
   #solver.SetNumThreads(4)
   status = solver.Solve()
   y = [int(ceil(e.SolutionValue())) for e in y]
@@ -345,10 +369,15 @@ def get_new_pattern(l, w, parent_width=100):
   new_pattern = [ solver.IntVar(0, parent_width, '') for i in range(n) ]
   # maximizes the sum of the values times the number of occurrence of that roll in a pattern
   Cost = sum( l[i] * new_pattern[i] for i in range(n))
+
+  #solver.Minimize(Cost2)
   solver.Maximize(Cost)
   # ensuring that the pattern stays within the total width of the large roll 
   solver.Add( sum( w[i] * new_pattern[i] for i in range(n)) <= parent_width )
+  solver.Add( sum( w[i] * new_pattern[i] for i in range(n)) >= parent_width*0.5 )
   status = solver.Solve()
+
+  print('used bar length,',sum( (w[i]) * SolVal(new_pattern[i]) for i in range(n)))
   return SolVal(new_pattern), ObjVal(solver)
 
 
@@ -421,6 +450,7 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
 
 
   
+
   else:
     print('Running Large Model...');
     #status, A, y, consumed_big_rolls = solve_large_model(demands=child_rolls, parent_width=parent_width)

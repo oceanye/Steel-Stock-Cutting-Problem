@@ -17,6 +17,10 @@ import logging
 import PySimpleGUI as sg
 import time
 
+import sys
+
+
+
 logging.basicConfig(level=logging.WARNING,
                     filename='./log_main.txt',
                     filemode='w',
@@ -241,6 +245,9 @@ def substi_len(val_len,len1,mat1,wei1):
 
     return [mat1[ii],wei1[ii]]
 
+
+
+
 str1="********* 3mm tolerance is considered in each member ******\n"
 outfile.write(str1)
 
@@ -275,7 +282,39 @@ cnR.commit()
 
 #------------------------------------------------------------#
 
+# sg.one_line_progress_meter('截面类型', i + 1, len(section_list), '')
+
+
+iter0=0
+
+if len(section_list) > 1:
+    # 定义窗口布局
+    layout = [
+        [sg.Text('套料进度:', size=(10, 1)), sg.ProgressBar(len(section_list), orientation='h', size=(50, 20), key='progress')],
+    ]#'Output:', size=(10, 1)), sg.Multiline(size=(50, 10), key='output', autoscroll=True)
+
+
+    # 创建窗口
+    window = sg.Window('套料进度', layout,finalize=True)
+
+
 for s in section_list:
+
+    iter0 = iter0 + 1
+    # 更新进度条
+
+    if len(section_list)>1:
+        window['progress'].update_bar(iter0)
+        window.refresh()
+
+
+
+
+
+
+
+
+
     section_data = Select_Section(s, data)
     # print(section_data)
     print("-----------\n-----------\n","Section",s,":\n-----------\n",)
@@ -389,12 +428,16 @@ for s in section_list:
         matlist.append(temp4[0:-1])
         weightlist.append(temp5[0:-1])
 
-    sg.one_line_progress_meter('截面类型', i + 1, len(section_list), '')
+
+
+
     time.sleep(1)
+
+
 
 outfile.close()
 
-
+#window.close()
 
 
 

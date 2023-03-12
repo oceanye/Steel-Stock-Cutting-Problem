@@ -1,5 +1,7 @@
 import os
 import re
+from collections import OrderedDict
+
 import openpyxl
 from tkinter import filedialog
 from tkinter import *
@@ -32,14 +34,16 @@ def extract_data_from_file(filepath):
     i=0
     gap_x=[]
     gap_y=[]
+    ecc_start = []
+    ecc_end =[]
     for item in data_detail:
         if (current_t2 in item[2]) == False:
 
-            current_group.append((item[0]-d_MD_x,item[1],item[2]))
+            current_group.append((item[0],item[1],item[2]))
         else:
             if current_group == []:
                 i=i+1
-                d_MD_x = item[0]
+                d_MD_x = item[0] #以MD标定，形成相对长度
                 continue
             else:
 
@@ -47,8 +51,10 @@ def extract_data_from_file(filepath):
 
 
                 sorted_points_x = sorted(current_group, key=lambda p: (p[0], p[1]))
-                gap_x.append(cal_group(sorted_points_x))
+                gap_x.append(cal_group_gap(sorted_points_x))
 
+                ecc_start.append((cal_group_ecc(i-1,sorted_points_x, data, "start")))
+                ecc_end.append((cal_group_ecc(i-1,sorted_points_x, data, "end")))
 
                 sorted_points_y = sorted(current_group, key=lambda p: (p[1], p[0]))
                 if is_collinear([d[:2] for d in sorted_points_y]):
@@ -60,7 +66,7 @@ def extract_data_from_file(filepath):
                         distances.append(str(distance))
                     gap_y.append(str(len(distances))+"排:"+','.join(distances))
                 else:
-                    gap_y.append(cal_group(sorted_points_y))
+                    gap_y.append(cal_group_gap(sorted_points_y))
 
                 grouped_data.append(current_group)
                 current_group = []
@@ -68,9 +74,28 @@ def extract_data_from_file(filepath):
 
 
 
-    return data,gap_x,gap_y
+    return data,gap_x,gap_y,ecc_start,ecc_end
 
-def cal_group(sorted_points):
+def cal_group_ecc(i,sorted_points_x, data, info):
+    x_MD= [pair[0] for pair in data]
+    x_MD=list(OrderedDict.fromkeys(x_MD))
+
+
+
+    if (info == "start"):
+        ecc_i = 0
+        x_coord = min([pair[0] for pair in sorted_points_x])
+        ecc = x_coord - x_MD[i-1+ecc_i]
+
+    else:
+        ecc_i =1
+        x_coord = max([pair[0] for pair in sorted_points_x])
+        ecc = x_MD[i - 1 + ecc_i]-x_coord
+
+
+
+    return ecc
+def cal_group_gap(sorted_points):
     #计算螺栓群信息
     #x_gap = [current_group[i+1][0] - current_group[i][0] for i in range(len(current_group)-1)]
     #y_gap = [current_group[i + 1][1] - current_group[i][1] for i in range(len(current_group) - 1)]
@@ -114,7 +139,7 @@ def cal_group(sorted_points):
    #     return '2排:'+str(math.sqrt((line_group[0][0][0][0]-line_group[1][0][0][0])**2+(line_group[0][0][0][1]-line_group[1][0][0][1])**2))
 
     for i in range(len(line_group) - 1):
-        x0 = line_group[i][0][0][0]
+        x0 = line_group[i][0][0][0]  # [连线分组-排数][排内直线数][x-coord][y-coord]
         y0 = line_group[i][0][0][1]
         x1 = line_group[i + 1][0][0][0]
         y1 = line_group[i + 1][0][0][1]
@@ -177,20 +202,28 @@ def process_folder(folder_path):
     ws = wb.active
     ws.column_dimensions['E'].width = 20.0
     ws.column_dimensions['F'].width = 20.0
-    ws.append(['filename', '序号', 'X', 'V','Gap_x','Gap_y', 'Length(X_diff)'])
+    ws.append(['filename', '序号', 'X', 'V','Gap_x','Gap_y','ecc_start','ecc_end', 'Length(X_diff)'])
     for file in os.listdir(folder_path):
         if file.endswith('.txt') and file.startswith('NCX_'):
             filepath = os.path.join(folder_path, file)
             filename = os.path.splitext(file)[0]
             filename = '_'.join(filename.split('_')[0:2])
             file_index = filename.split('_')[-1]
-            data,gap_x,gap_y = extract_data_from_file(filepath)
+            data,gap_x,gap_y,ecc_start,ecc_end = extract_data_from_file(filepath)
             if data:
                 for i in range(1, len(data)):
                     x_diff = data[i][0] - data[i-1][0]
                     if x_diff != 0:
                         print(i)
-                        ws.append([filename, file_index, data[i][0], data[i][1], gap_x[int(i/2-0.5)],gap_y[int(i/2-0.5)],x_diff])
+                        ecc_start_bar = ecc_start[int(i / 2 - 0.5)]
+                        ecc_end_bar = ecc_end[int(i/2-0.5)]
+
+                        if ecc_start_bar > x_diff * 0.5:
+                            ecc_start_bar =""
+                        if ecc_end_bar > x_diff*0.5:
+                            ecc_end_bar = ""
+
+                        ws.append([filename, file_index, data[i][0], data[i][1], gap_x[int(i/2-0.5)],gap_y[int(i/2-0.5)],ecc_start_bar,ecc_end_bar,x_diff])
             wb.save(folder_path+'\output.xlsx')
 
 

@@ -367,6 +367,7 @@ for s in section_list:
     elif para_option =="rank_roll":
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=Fixed_rank_rolls_v2.rank_rolls(w1,ID3)
 
+
     print('')
     # print(rst1)
     # print(rst2)
@@ -473,7 +474,7 @@ cnR.execute('''
 CREATE TABLE Output_table
     (
     Section           STRING,
-    Bar_group           INTEGER,
+    Bar_group           STRING,
     Usage_ratio           REAL,
     Unusage_Length           REAL,
     Length_List           STRING,

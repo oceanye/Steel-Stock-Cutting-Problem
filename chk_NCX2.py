@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 
 import openpyxl
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from tkinter import *
 import math
 
@@ -16,14 +16,40 @@ def extract_data_from_file(filepath):
 
     data = []
     data_detail=[]
+    i_bar=0
+    n_MD =0
+    i=0
+    start_idx = None
+    count =0
+
     for line in lines:
 
             match = re.search(r'X:(\d+)\s+Y:\*+\s+V:\s*(\d+)\s+B:\*+\s+T1:\*+\s+T2:([a-zA-Z]{1,2}\d+)\s+T3:\*+\s+PAT:', line)
             if match:
                 x, v, D = int(match.group(1)), int(match.group(2)), match.group(3)
-                data_detail .append((x,v,D))
-                if 'MD' in D:
-                    data.append((x, v, D))
+                i = i + 1
+            else:
+                continue
+            if "MD" in D:
+                if start_idx is None:  # starting a new MD series
+                    start_idx = i
+                    data.append((x, v, D,""))
+                    i_comment = ""
+                count += 1  # increment the count of MD in the current series
+                if count == 2:
+                    data.append((x,v,D,""))
+
+                elif count>2:
+                    messagebox.showinfo("NCX_檢查","檢查NCX"+f.name.split('/')[-1]+" :X="+str(x)+",MD數據")
+                    exit(0)
+                    continue
+            else:
+                #start_idx is not None:  # ending the current MD series
+                    #md_series.append((start_idx, i - 1, count))  # record the start, end, and count
+                    start_idx = None
+                    count = 0
+
+            data_detail .append((x,v,D))
 
     data = sorted(data, key=lambda x: x[0])
     data_detail = sorted(data_detail, key=lambda x: x[0])
@@ -43,7 +69,8 @@ def extract_data_from_file(filepath):
         else:
             if current_group == []:
                 i=i+1
-                d_MD_x = item[0] #以MD标定，形成相对长度
+                i_bar=i_bar+1#bar 的i段数
+                #d_MD_x = item[0] #以MD标定，形成相对长度
                 continue
             else:
 
@@ -53,8 +80,8 @@ def extract_data_from_file(filepath):
                 sorted_points_x = sorted(current_group, key=lambda p: (p[0], p[1]))
                 gap_x.append(cal_group_gap(sorted_points_x))
 
-                ecc_start.append((cal_group_ecc(i-1,sorted_points_x, data, "start")))
-                ecc_end.append((cal_group_ecc(i-1,sorted_points_x, data, "end")))
+                ecc_start.append((cal_group_ecc(i_bar-1,sorted_points_x, data, "start")))
+                ecc_end.append((cal_group_ecc(i_bar-1,sorted_points_x, data, "end")))
 
                 sorted_points_y = sorted(current_group, key=lambda p: (p[1], p[0]))
                 if is_collinear([d[:2] for d in sorted_points_y]):
@@ -63,8 +90,8 @@ def extract_data_from_file(filepath):
                         x1, y1 = sorted_points_y[i][0],sorted_points_y[i][1]
                         x2, y2 = sorted_points_y[i+1][0],sorted_points_y[i+1][1]
                         distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-                        distances.append(str(distance))
-                    gap_y.append(str(len(distances))+"排:"+','.join(distances))
+                        distances.append(str(round(distance,1)))
+                    gap_y.append(str(len(distances))+"列:"+','.join(distances))
                 else:
                     gap_y.append(cal_group_gap(sorted_points_y))
 
@@ -83,18 +110,18 @@ def cal_group_ecc(i,sorted_points_x, data, info):
 
 
     if (info == "start"):
-        ecc_i = 0
+
         x_coord = min([pair[0] for pair in sorted_points_x])
-        ecc = x_coord - x_MD[i-1+ecc_i]
+        ecc = x_coord - x_MD[i-1]
 
     else:
-        ecc_i =1
+
         x_coord = max([pair[0] for pair in sorted_points_x])
-        ecc = x_MD[i - 1 + ecc_i]-x_coord
+        ecc = x_MD[i]-x_coord
 
 
 
-    return ecc
+    return round(ecc,1)
 def cal_group_gap(sorted_points):
     #计算螺栓群信息
     #x_gap = [current_group[i+1][0] - current_group[i][0] for i in range(len(current_group)-1)]
@@ -117,9 +144,9 @@ def cal_group_gap(sorted_points):
     for i in range(len(sorted_points)-1):
 
         x1=sorted_points[i][0]
-        y1=sorted_points[i][0]
+        y1=sorted_points[i][1]
         x2 = sorted_points[i + 1][0]
-        y2 = sorted_points[i + 1][0]
+        y2 = sorted_points[i + 1][1]
         if (x2 - x1) == 0:
             slope_current = None
         else:
@@ -136,10 +163,10 @@ def cal_group_gap(sorted_points):
 
     gap_list = []
     #if line_group==2:
-   #     return '2排:'+str(math.sqrt((line_group[0][0][0][0]-line_group[1][0][0][0])**2+(line_group[0][0][0][1]-line_group[1][0][0][1])**2))
+   #     return '2列:'+str(math.sqrt((line_group[0][0][0][0]-line_group[1][0][0][0])**2+(line_group[0][0][0][1]-line_group[1][0][0][1])**2))
 
     for i in range(len(line_group) - 1):
-        x0 = line_group[i][0][0][0]  # [连线分组-排数][排内直线数][x-coord][y-coord]
+        x0 = line_group[i][0][0][0]  # [连线分组-列数][列内直线数][x-coord][y-coord]
         y0 = line_group[i][0][0][1]
         x1 = line_group[i + 1][0][0][0]
         y1 = line_group[i + 1][0][0][1]
@@ -156,11 +183,11 @@ def cal_group_gap(sorted_points):
         gap_list.append(d_str)
 
     if len(gap_list)>1 and gap_list[-1]=='/':
-        gap_list[-1]='/,1排'
+        gap_list[-1]='/,1列'
     if len(gap_list)>0:
-        return str(len(gap_list)+1)+'排:'+','.join(gap_list)
+        return str(len(gap_list)+1)+'列:'+','.join(gap_list)
     else:
-        return '1排'
+        return '1列'
 
 
 def distance_to_line(x0, y0, x1, y1, x2, y2):
@@ -202,7 +229,9 @@ def process_folder(folder_path):
     ws = wb.active
     ws.column_dimensions['E'].width = 20.0
     ws.column_dimensions['F'].width = 20.0
-    ws.append(['filename', '序号', 'X', 'V','Gap_x','Gap_y','ecc_start','ecc_end', 'Length(X_diff)'])
+    ws.column_dimensions['G'].width = 20.0
+    ws.column_dimensions['H'].width = 20.0
+    ws.append(['文件名', '序号', 'X-坐标', 'V-坐标','x-间距','v-间距','单构件偏心-起始','单构件偏心-末端', '单构件长度'])
     for file in os.listdir(folder_path):
         if file.endswith('.txt') and file.startswith('NCX_'):
             filepath = os.path.join(folder_path, file)
@@ -224,7 +253,7 @@ def process_folder(folder_path):
                             ecc_end_bar = ""
 
                         ws.append([filename, file_index, data[i][0], data[i][1], gap_x[int(i/2-0.5)],gap_y[int(i/2-0.5)],ecc_start_bar,ecc_end_bar,x_diff])
-            wb.save(folder_path+'\output.xlsx')
+            wb.save(folder_path + '\\NCX_校核结果.xlsx')
 
 
 def select_folder():

@@ -207,7 +207,8 @@ def find_ID_list(sub_list, dict1):
         for j in range(len(sub_list_A[i])):
             ID_suffix = []
             temp_len = sub_list_A[i][j]
-            temp_ID = int(re.sub("\D", "", str(temp_len)))
+            #temp_ID = int(re.sub("\D", "", str(temp_len))) #2023.03.31 修正
+            temp_ID= (temp_len)
             if isinstance(temp_len, str):
                 ID_suffix = list(temp_len)[-1]
             sub_list_A[i][j] = str(findKV(temp_ID, dict1)).strip("[").strip("]") + str(ID_suffix).strip("[").strip("]")

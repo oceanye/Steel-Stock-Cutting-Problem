@@ -71,11 +71,12 @@ c = cnR.cursor()
 cursor1 = c.execute("SELECT Section,Length,ID_list,Material,Weight,Number_list from Import_table")
 for row in cursor1:
     section.append(row[0])
-    length.append(int(row[1])) # length is described with int
+    length.append(float(row[1])) # length is described with float
     id.append(row[2])
     material.append(row[3])
     weight.append(round(row[4],2))
     numb.append(row[5])
+
 cnR.commit()
 
 arr_section = np.array(section)
@@ -212,7 +213,7 @@ def Select_Section(section,data):
 
 def width_tol(w,tol):
     # print(w)
-    w = [i+tol for i in w]
+    w = [(i+tol) for i in w]
     # print(w)
     return(w)
 
@@ -321,7 +322,7 @@ for s in section_list:
     [w1,ID1,b1,mat1,wei1]=[section_data[:,1],section_data[:,2],section_data[:, -1],section_data[:,3],section_data[:,4]]
     # demand_sub_rolls_lenth_list, ID_list, demand_sub_rolls_quantity, material_list, weight_list
 
-    w1=list(map(int,list(w1)))
+    w1=list(map(float,list(w1)))
     b1=list(map(int,list(b1)))
 
     # print("w1:",w1)

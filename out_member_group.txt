@@ -1,5 +1,3 @@
 ********* 3mm tolerance is considered in each member ******
 ------------
 Section: HN300*150*6.5*9:
-Usage info+Length_arrangement:[[1, 0, [1960.56, 1369.51]]]
-ID_Group:(28892018,26543699)

@@ -25,7 +25,7 @@ def sum_list(list1, loc_of_sum_list1):
     total = loc_of_sum_list1*3 # 考虑循环套料两两之间，增加3mm间隙
     for i in range(loc_of_sum_list1):
         total = list1[i] + total
-    return total
+    return round(total,2)
 
 
 def gen_list(length_of_list):
@@ -128,8 +128,8 @@ def evaluate_list(list1, roll_length, min_len):
 
         splitGroupNo = str(i + 1)
         splitItemID = str(list_temp[-1])
-        splitLengthA = str(list1[slice_i - 2] - (list_sum[slice_i - 1] - roll_length * (i + 1)))
-        splitLengthB = str(list_sum[slice_i - 1] - roll_length * (i + 1))
+        splitLengthA = str(round(list1[slice_i - 2] - (list_sum[slice_i - 1] - roll_length * (i + 1)),2))
+        splitLengthB = str(round(list_sum[slice_i - 1] - roll_length * (i + 1),2))
         # print('查看组号： ' + splitGroupNo)
         # print('查看ID： ' + splitItemID)
         # print('查看A长： ' + splitLengthA)
@@ -195,6 +195,7 @@ def findKV(length, dict1):
 
 
 def find_ID_list(sub_list, dict1):
+    print(sub_list)
     sub_list_A = copy.deepcopy(sub_list)
     for i in range(len(sub_list)):
         for j in range(len(sub_list[i])):
@@ -207,8 +208,10 @@ def find_ID_list(sub_list, dict1):
         for j in range(len(sub_list_A[i])):
             ID_suffix = []
             temp_len = sub_list_A[i][j]
-            #temp_ID = int(re.sub("\D", "", str(temp_len))) #2023.03.31 修正
-            temp_ID= (temp_len)
+            print(temp_len)
+            #temp_ID = round(float(re.sub("\d+\.?\d*", "", str(temp_len))),2) #2023.03.31 修正
+            temp_ID = round(float(re.search("\d+\.?\d*", str(temp_len))), 2)
+            #temp_ID= (temp_len)
             if isinstance(temp_len, str):
                 ID_suffix = list(temp_len)[-1]
             sub_list_A[i][j] = str(findKV(temp_ID, dict1)).strip("[").strip("]") + str(ID_suffix).strip("[").strip("]")
@@ -218,7 +221,8 @@ def find_ID_list(sub_list, dict1):
     for i in range(len(sub_list_A)):
         for j in range(len(sub_list_A[i])):
             temp_oriLen = sub_list_A[i][j]
-            temp_oriID = int(re.sub("\D", "", str(temp_oriLen)))
+            #temp_oriID = int(re.sub("\D", "", str(temp_oriLen))) 2023.04.03
+            temp_oriID = (re.sub("\d+\.?\d*", "", str(temp_oriLen)))
             if (str(temp_oriLen)[-1] == 'A'):  # True
                 sub_ID_list[i + 1].insert(0, str(temp_oriID) + 'B')
     return sub_ID_list
@@ -257,7 +261,7 @@ def rank_output(dataAna):
             l = i[4]
         else:
             l = i[2]
-
+        #print (l)
         consumed_big_rolls[i[1] - 1][0] = 1
         consumed_big_rolls[i[1] - 1][1] = 0
         consumed_big_rolls[i[1] - 1][2].append(l)
@@ -273,6 +277,7 @@ def rank_output(dataAna):
 
 
 def rank_rolls(list_temp, ID_list_temp):
+    ID_list = []
     ID_list = []
     list1 = []
     global slice_bar_info
@@ -367,8 +372,9 @@ def rank_rolls(list_temp, ID_list_temp):
                 if sub_list[i][-1] == slice_bar_info[i][1]:
                     # print(slice_bar_info[i][2])
                     # print(dataClean[i][-1])
-                    dataClean[i][-1] = int(slice_bar_info[i][2])
-                    dataClean[i + 1][0] = int(slice_bar_info[i][3])
+                    dataClean[i][-1] = round(float(slice_bar_info[i][2]),2)
+                    dataClean[i + 1][0] = round(float(slice_bar_info[i][3]),2)
+                    dataClean[i + 1][0] = round(float(slice_bar_info[i][3]),2)
                     # print('clean:', dataClean)
                 else:
                     print('!=')
@@ -379,16 +385,39 @@ def rank_rolls(list_temp, ID_list_temp):
                 for l in range(len(i)):
                     sql_ID = i[l]
                     sql_Group_No = dataClean.index(j) + 1
+
+                    print(i)
+
                     if str((i[l][-1])).__contains__('A'):
-                        sql_Length_A = j[l]-shared_variable.roll_gap
+
+                        sql_Length_A = round(j[l]-shared_variable.roll_gap,2)
                         # dataAna.append([sql_ID,sql_Group_No,0,sql_Length_A,0,anaInfo])
                         sql_Length_NC = originDict1[str(i[l]).strip('A')]  # 原杆件长度
+
+                        print(i[l])
+
+                        print(sql_Length_A)
+                        print(sql_Length_NC)
+
+                        print (i[l])
+                        print('---')
+
                         dataAna.append(
                             [sql_ID, sql_Group_No, sql_Length_NC, str(sql_Length_A) + "-" + str(sql_Length_NC), 0,
                              anaInfo])  # i[l][-1].strip('A')
                     elif str((i[l][-1])).__contains__('B'):
-                        sql_Length_B = j[l]
+
+                        sql_Length_B = round(j[l],2)
                         sql_Length_NC = originDict1[str(i[l]).strip('B')]  # 原杆件长度
+
+                        print(i[l])
+
+                        print(sql_Length_B)
+                        print(sql_Length_NC)
+
+                        print(i[l])
+                        print('---')
+
                         dataAna.append(
                             [sql_ID, sql_Group_No, sql_Length_NC, 0, str(sql_Length_B) + "-" + str(sql_Length_NC),
                              anaInfo])  # i[l][-1].strip('B')

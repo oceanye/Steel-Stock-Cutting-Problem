@@ -71,7 +71,7 @@ c = cnR.cursor()
 cursor1 = c.execute("SELECT Section,Length,ID_list,Material,Weight,Number_list from Import_table")
 for row in cursor1:
     section.append(row[0])
-    length.append(float(row[1])) # length is described with float
+    length.append(round(float(row[1]),2)) # length is described with float
     id.append(row[2])
     material.append(row[3])
     weight.append(round(row[4],2))
@@ -218,10 +218,11 @@ def width_tol(w,tol):
     return(w)
 
 def check_org_length(var):
+
     if str(var).__contains__('-'):
-        val_len = int(var.split('-')[1])
+        val_len = round(float(var.split('-')[1]),2)
     else:
-        val_len=(int(var))
+        val_len=round(float(var),2)
     return(val_len)
 def check_org_ID(var):
     #print(var)
@@ -241,7 +242,8 @@ def substi_len(val_len,len1,mat1,wei1):
     #print("val_len",val_len)
     # print("len1",len1)
     val_len=check_org_length(val_len)
-    len1=list(map(int, list(len1)))
+    len1=list(map(float, list(len1)))
+    #print("len1",len1)
     ii = len1.index(val_len)
 
     return [mat1[ii],wei1[ii]]

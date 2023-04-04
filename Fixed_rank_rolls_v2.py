@@ -22,10 +22,11 @@ logging.basicConfig(level=logging.WARNING,
 
 def sum_list(list1, loc_of_sum_list1):
     # 输入一个数列，并指定数位，将该数位之前的数据求和
-    total = loc_of_sum_list1*3 # 考虑循环套料两两之间，增加3mm间隙
+
+    total = loc_of_sum_list1*shared_variable.tol # 考虑循环套料两两之间，增加3mm间隙
     for i in range(loc_of_sum_list1):
         total = list1[i] + total
-    return round(total,2)
+    return round(float(total),2)
 
 
 def gen_list(length_of_list):
@@ -184,7 +185,7 @@ def ID_search(tempList):
 def findKV(length, dict1):
     # findKV方法能找到所有的length=200（Value）的所有ID（Key），返回数组
     keyList = []
-    findKeyByValue = [k for k, v in dict1.items() if v == length]
+    findKeyByValue = [k for k, v in dict1.items() if v == float(length)]
     keyList.extend(findKeyByValue)
     tempList = keyList
     if len(tempList) >= 1:
@@ -195,7 +196,6 @@ def findKV(length, dict1):
 
 
 def find_ID_list(sub_list, dict1):
-    print(sub_list)
     sub_list_A = copy.deepcopy(sub_list)
     for i in range(len(sub_list)):
         for j in range(len(sub_list[i])):
@@ -208,10 +208,7 @@ def find_ID_list(sub_list, dict1):
         for j in range(len(sub_list_A[i])):
             ID_suffix = []
             temp_len = sub_list_A[i][j]
-            print(temp_len)
-            #temp_ID = round(float(re.sub("\d+\.?\d*", "", str(temp_len))),2) #2023.03.31 修正
-            temp_ID = round(float(re.search("\d+\.?\d*", str(temp_len))), 2)
-            #temp_ID= (temp_len)
+            temp_ID = re.sub(r"[A,B]", "", str(temp_len))
             if isinstance(temp_len, str):
                 ID_suffix = list(temp_len)[-1]
             sub_list_A[i][j] = str(findKV(temp_ID, dict1)).strip("[").strip("]") + str(ID_suffix).strip("[").strip("]")
@@ -221,8 +218,7 @@ def find_ID_list(sub_list, dict1):
     for i in range(len(sub_list_A)):
         for j in range(len(sub_list_A[i])):
             temp_oriLen = sub_list_A[i][j]
-            #temp_oriID = int(re.sub("\D", "", str(temp_oriLen))) 2023.04.03
-            temp_oriID = (re.sub("\d+\.?\d*", "", str(temp_oriLen)))
+            temp_oriID = int(re.sub(r"[A,B]", "", str(temp_oriLen)))
             if (str(temp_oriLen)[-1] == 'A'):  # True
                 sub_ID_list[i + 1].insert(0, str(temp_oriID) + 'B')
     return sub_ID_list
@@ -261,7 +257,7 @@ def rank_output(dataAna):
             l = i[4]
         else:
             l = i[2]
-        #print (l)
+
         consumed_big_rolls[i[1] - 1][0] = 1
         consumed_big_rolls[i[1] - 1][1] = 0
         consumed_big_rolls[i[1] - 1][2].append(l)
@@ -277,7 +273,9 @@ def rank_output(dataAna):
 
 
 def rank_rolls(list_temp, ID_list_temp):
-    ID_list = []
+
+    make_print_to_file(path='./log')
+
     ID_list = []
     list1 = []
     global slice_bar_info
@@ -323,16 +321,16 @@ def rank_rolls(list_temp, ID_list_temp):
             [idx_status,loc,sub_list]=[0,len(list1),[list1]]
         # print('状态：',idx_status)
         if idx_status == 1:
-            l_r = round(len(list1)/5)
+            l_r = round(len(list1)/2)
 
-            if loc > 6: # 针有较多短构件，设定阈值，前5根排好后，即不作调整，避免过多迭代
-                list1_a = list1[:loc - 6]
-                list1_b = list1[loc - 6:]
+            if loc > l_r: # 针有较多短构件，设定阈值，前5根排好后，即不作调整，避免过多迭代
+                list1_a = list1[:loc - l_r]
+                list1_b = list1[loc - l_r:]
                 random.shuffle(list1_b)
                 list1 = list1_a + list1_b
             else:
                 random.shuffle(list1)
-            print(list1)
+
             t = t + 1
             # if loc < 5:
             #     random.shuffle(list1)
@@ -374,7 +372,6 @@ def rank_rolls(list_temp, ID_list_temp):
                     # print(dataClean[i][-1])
                     dataClean[i][-1] = round(float(slice_bar_info[i][2]),2)
                     dataClean[i + 1][0] = round(float(slice_bar_info[i][3]),2)
-                    dataClean[i + 1][0] = round(float(slice_bar_info[i][3]),2)
                     # print('clean:', dataClean)
                 else:
                     print('!=')
@@ -386,38 +383,16 @@ def rank_rolls(list_temp, ID_list_temp):
                     sql_ID = i[l]
                     sql_Group_No = dataClean.index(j) + 1
 
-                    print(i)
-
                     if str((i[l][-1])).__contains__('A'):
-
-                        sql_Length_A = round(j[l]-shared_variable.roll_gap,2)
+                        sql_Length_A = j[l]-shared_variable.roll_gap
                         # dataAna.append([sql_ID,sql_Group_No,0,sql_Length_A,0,anaInfo])
                         sql_Length_NC = originDict1[str(i[l]).strip('A')]  # 原杆件长度
-
-                        print(i[l])
-
-                        print(sql_Length_A)
-                        print(sql_Length_NC)
-
-                        print (i[l])
-                        print('---')
-
                         dataAna.append(
                             [sql_ID, sql_Group_No, sql_Length_NC, str(sql_Length_A) + "-" + str(sql_Length_NC), 0,
                              anaInfo])  # i[l][-1].strip('A')
                     elif str((i[l][-1])).__contains__('B'):
-
-                        sql_Length_B = round(j[l],2)
+                        sql_Length_B = j[l]
                         sql_Length_NC = originDict1[str(i[l]).strip('B')]  # 原杆件长度
-
-                        print(i[l])
-
-                        print(sql_Length_B)
-                        print(sql_Length_NC)
-
-                        print(i[l])
-                        print('---')
-
                         dataAna.append(
                             [sql_ID, sql_Group_No, sql_Length_NC, 0, str(sql_Length_B) + "-" + str(sql_Length_NC),
                              anaInfo])  # i[l][-1].strip('B')
@@ -491,3 +466,42 @@ def rank_rolls(list_temp, ID_list_temp):
 # conn = sqlite3.connect('Tekla_NCX_database_test')
 # c = conn.cursor()
 # print ("NCX数据库打开成功")
+
+def make_print_to_file(path='./log'):
+    '''
+    path， it is a path for save your log about fuction print
+    example:
+    use  make_print_to_file()   and the   all the information of funtion print , will be write in to a log file
+    :return:
+    '''
+    import sys
+    import os
+    import sys
+    import datetime
+
+    class Logger(object):
+        def __init__(self, filename="循环套料.log", path="./"):
+            self.terminal = sys.stdout
+            self.path = os.path.join(path, filename)
+            self.log = open(self.path, "a", encoding='utf8', )
+            print("save:", os.path.join(self.path, filename))
+
+        def write(self, message):
+            self.terminal.write(message)
+            self.log.write(message)
+
+        def flush(self):
+            pass
+
+    fileName = datetime.datetime.now().strftime('Rank_roll_Log' + '%Y_%m_%d_%H')
+    sys.stdout = Logger(fileName + '.log', path=path)
+
+    #############################################################
+    # 这里输出之后的所有的输出的print 内容即将写入日志
+    #############################################################
+    print(fileName.center(60, '*'))
+
+
+
+
+

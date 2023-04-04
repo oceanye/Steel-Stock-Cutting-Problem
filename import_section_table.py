@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import sqlite3
 import test8_ortools_stock_cutter_1d
@@ -42,6 +44,7 @@ para_option=args.roll_type
 shared_variable.split_length = args.split_length
 shared_variable.roll_gap = args.roll_gap
 shared_variable.largesmall_mode = args.largesmall_mode
+shared_variable.tol = 3
 
 
 
@@ -71,12 +74,11 @@ c = cnR.cursor()
 cursor1 = c.execute("SELECT Section,Length,ID_list,Material,Weight,Number_list from Import_table")
 for row in cursor1:
     section.append(row[0])
-    length.append(round(float(row[1]),2)) # length is described with float
+    length.append(float(row[1])) # length is described with int
     id.append(row[2])
     material.append(row[3])
     weight.append(round(row[4],2))
     numb.append(row[5])
-
 cnR.commit()
 
 arr_section = np.array(section)
@@ -134,7 +136,19 @@ data = np.empty([len(section), 5], dtype='S100')
 # print((data[0][:]))
 #
 p = r'input_section_table.txt'
-outfile = open ("out_member_group.txt","w")
+outfile = open ("./log/out_member_group.txt","a+")
+
+#生成字符串time_current,当前时间精确到秒
+time_current = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+outfile.write("开始套料："+time_current + '\n')
+outfile.write("套料方式："+para_option + '\n')
+outfile.write("整料长度："+str(shared_variable.parent_length) + '\n')
+outfile.write("最小切分长度："+str(shared_variable.split_length) + '\n')
+outfile.write("循环套料拼接焊缝尺寸："+str(shared_variable.roll_gap) + '\n')
+outfile.write("套料模式："+str(shared_variable.largesmall_mode) + '\n')
+outfile.write("套料容差："+str(shared_variable.tol) + '\n')
+outfile.write("套料结果：" + '\n')
+
 # #
 # #
 # with open(p,encoding = 'utf-8') as f:
@@ -213,12 +227,11 @@ def Select_Section(section,data):
 
 def width_tol(w,tol):
     # print(w)
-    w = [(i+tol) for i in w]
+    w = [i+tol for i in w]
     # print(w)
     return(w)
 
 def check_org_length(var):
-
     if str(var).__contains__('-'):
         val_len = round(float(var.split('-')[1]),2)
     else:
@@ -243,7 +256,6 @@ def substi_len(val_len,len1,mat1,wei1):
     # print("len1",len1)
     val_len=check_org_length(val_len)
     len1=list(map(float, list(len1)))
-    #print("len1",len1)
     ii = len1.index(val_len)
 
     return [mat1[ii],wei1[ii]]
@@ -325,14 +337,14 @@ for s in section_list:
     # demand_sub_rolls_lenth_list, ID_list, demand_sub_rolls_quantity, material_list, weight_list
 
     w1=list(map(float,list(w1)))
-    b1=list(map(int,list(b1)))
+    b1=list(map(float,list(b1)))
 
     # print("w1:",w1)
     # print("b1:",b1)
 
 
     if para_option=="opt_method": # 优化套料需要在输入端考虑3mm 杆件之间间隙，循环套料在套料过程中考虑
-        w1=width_tol(w1,3) # 3mm is tol
+        w1=width_tol(w1,shared_variable.tol) # 3mm is tol
     else:
         w1=w1
 
@@ -365,6 +377,8 @@ for s in section_list:
     #test2_MIP.CSP_MIP(w1, b1)
     #test3_gurobipy.CSP_gurobipy(w1,b1,ID1)
 
+
+
     if para_option =="opt_method":
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=test8_ortools_stock_cutter_1d.CSP_ortools(w1,b1,ID3)
     elif para_option =="rank_roll":
@@ -374,7 +388,7 @@ for s in section_list:
     print('')
     # print(rst1)
     # print(rst2)
-    # print(type(w[1]))
+    # print(type(w[1]))前序求和
     # print(type(w))
     # print(b)
     # print("big",consumed_big_rolls[0])
@@ -438,7 +452,8 @@ for s in section_list:
     time.sleep(1)
 
 
-
+outfile.write("套料完成"+'\n')
+outfile.write("------------------------"+'\n')
 outfile.close()
 
 #window.close()
@@ -505,3 +520,43 @@ for i in range(len(tbl1_T)):
     sql_values = ""
     sql_value1 = ""
 cnR.commit()
+
+
+def make_print_to_file(path='./'):
+    '''
+    path， it is a path for save your log about fuction print
+    example:
+    use  make_print_to_file()   and the   all the information of funtion print , will be write in to a log file
+    :return:
+    '''
+    import sys
+    import os
+    import sys
+    import datetime
+
+    class Logger(object):
+        def __init__(self, filename="Default.log", path="./"):
+            self.terminal = sys.stdout
+            self.path = os.path.join(path, filename)
+            self.log = open(self.path, "a", encoding='utf8', )
+            print("save:", os.path.join(self.path, filename))
+
+        def write(self, message):
+            self.terminal.write(message)
+            self.log.write(message)
+
+        def flush(self):
+            pass
+
+    fileName = datetime.datetime.now().strftime('day' + '%Y_%m_%d')
+    sys.stdout = Logger(fileName + '.log', path=path)
+
+    #############################################################
+    # 这里输出之后的所有的输出的print 内容即将写入日志
+    #############################################################
+    print(fileName.center(60, '*'))
+
+
+
+
+

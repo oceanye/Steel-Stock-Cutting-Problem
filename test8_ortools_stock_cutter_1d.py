@@ -577,14 +577,14 @@ def CSP_ortools(w,b,ID):
       for ck in range(0,len(demand_sub_rolls[ci][cj])):
 
         temp_c = demand_sub_rolls[ci][cj][ck]
-        #print(temp_c)
+        print(temp_c)
         temp_c_ID=ID[w.index(temp_c)][-1]
         demand_sub_rolls[ci][cj][ck]=temp_c_ID
         temp_c_len=consumed_sub_rolls[ci][cj][ck]-3
-        # print("temp_C",temp_c)
-        # print("ID_index",w.index(temp_c))
-        # print("ID_List",ID[w.index(temp_c)])
-        # print("ID",ID[w.index(temp_c)][-1])
+        print("temp_C",temp_c)
+        print("ID_index",w.index(temp_c))
+        print("ID_List",ID[w.index(temp_c)])
+        print("ID",ID[w.index(temp_c)][-1])
         ana_info ='None'
         sql_Group_No=ci+1
         dataAna.append([(temp_c_ID), (sql_Group_No), (temp_c_len), 0, 0, ana_info])

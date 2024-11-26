@@ -1,5 +1,7 @@
 import numpy as np
 import sqlite3
+
+import onebar
 import test8_ortools_stock_cutter_1d
 import copy
 
@@ -19,6 +21,8 @@ import time
 
 import sys
 
+import two_roll
+
 
 
 logging.basicConfig(level=logging.WARNING,
@@ -30,7 +34,7 @@ logging.basicConfig(level=logging.WARNING,
 
 parser = argparse.ArgumentParser(description='套料设置')
 parser.add_argument("-l","--roll_length",default=12000, type=int,help='整料长度(mm)')
-parser.add_argument("-t","--roll_type",default='rank_roll', type=str,help='套料方式=opt_method,rank_roll')
+parser.add_argument("-t","--roll_type",default='rank_roll', type=str,help='套料方式=opt_method,rank_roll,single_method')
 parser.add_argument("-r","--split_length",default=600, type=int,help='最小切分长度(mm)')
 parser.add_argument("-g","--roll_gap",default=5, type=int,help="循环套料拼接焊缝尺寸(mm)")
 parser.add_argument("-m","--largesmall_mode",default=0,type=int,help='1-Large_mode;0-Small_mode')
@@ -55,7 +59,7 @@ shared_variable.largesmall_mode = args.largesmall_mode
 #Folderpath = filedialog.askdirectory()
 #ssss = r"Z:\数字化课题\结构数字化课题\02 工作文件\2021 11 22 套料优化py脚本\2021 12 29 套料优化更新\Tekla_NCX_database.db"
 # Test
-ssss = r"Tekla_NCX_database.db"
+ssss = r"Tekla_NCX_database1.db"
 
 
 cnR = sqlite3.connect(ssss)
@@ -330,6 +334,8 @@ for s in section_list:
 
     if para_option=="opt_method": # 优化套料需要在输入端考虑3mm 杆件之间间隙，循环套料在套料过程中考虑
         w1=width_tol(w1,3) # 3mm is tol
+    elif para_option=="opt_method1":
+        w1 = width_tol(w1, 3)  # 3mm is tol
     else:
         w1=w1
 
@@ -361,11 +367,17 @@ for s in section_list:
 
     #test2_MIP.CSP_MIP(w1, b1)
     #test3_gurobipy.CSP_gurobipy(w1,b1,ID1)
-
+    print(w1)
     if para_option =="opt_method":
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=test8_ortools_stock_cutter_1d.CSP_ortools(w1,b1,ID3)
     elif para_option =="rank_roll":
         [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=Fixed_rank_rolls_v2.rank_rolls(w1,ID3)
+    elif para_option =="single_method":
+        [consumed_big_rolls, consumed_sub_rolls,demand_sub_rolls]=onebar.single_component(w1,b1,ID3)
+
+    elif para_option =="opt_method3":
+        two_roll.two_roll_method([11000, 12000], w1, b1)
+
 
 
     print('')
@@ -420,6 +432,7 @@ for s in section_list:
         temp3 = ''
         temp4 = ''
         temp5 = ''
+
         for i in range(len(demand_sub_rolls[j][0])):
 
             temp3=temp3+(demand_sub_rolls[j][0][i])+","#check_org_ID

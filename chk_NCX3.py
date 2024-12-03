@@ -89,7 +89,12 @@ def extract_data_from_file(filepath):
         else:
             x_start, x_end = get_x_start_end(groups[i])
             for i in range(len(x_group)):
-                m, n, x_spacing, y_spacing = check_grid(x_group[i])
+                try:
+                    m, n, x_spacing, y_spacing = check_grid(x_group[i])
+                except ValueError:
+                    print("检查坐标"+x_group[i])
+                    result = messagebox.showinfo("检查坐标"+x_group[i])
+
                 group_m.append(m)
                 group_n.append(n)
                 group_x_spacing.append(x_spacing)
